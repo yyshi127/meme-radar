@@ -34,6 +34,7 @@ export default function App() {
   const [watchlist, setWatchlist] = useState([]);
   const [filters, setFilters] = useState(defaultFilters);
   const [selectedKey, setSelectedKey] = useState(null);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [watchBusyKey, setWatchBusyKey] = useState(null);
   const [error, setError] = useState(null);
 
@@ -60,16 +61,29 @@ export default function App() {
     return () => clearInterval(timer);
   }, [page.name, refresh]);
 
+  useEffect(() => {
+    document.body.classList.toggle("mobile-detail-open", mobileDetailOpen);
+    function closeOnEscape(event) {
+      if (event.key === "Escape") setMobileDetailOpen(false);
+    }
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.classList.remove("mobile-detail-open");
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [mobileDetailOpen]);
+
   const candidates = page.key === "discovery"
     ? report?.discoveryCandidates || report?.candidates || []
     : report?.candidates || [];
   const watchedCandidates = useMemo(() => {
     const current = new Map(candidates.map((candidate) => [candidate.key, candidate]));
     return watchlist.map((entry) => current.has(entry.key)
-      ? { ...current.get(entry.key), watched: true, isLive: true }
+      ? { ...current.get(entry.key), watched: true, isLive: true, watchHitCount: entry.hitCount || 0 }
       : entry.snapshot);
   }, [candidates, watchlist]);
   const watchedKeys = useMemo(() => new Set(watchlist.map((entry) => entry.key)), [watchlist]);
+  const watchEntries = useMemo(() => new Map(watchlist.map((entry) => [entry.key, entry])), [watchlist]);
   const filtered = useMemo(() => {
     const query = filters.query.trim().toLowerCase();
     const source = filters.priority === "saved" ? watchedCandidates : candidates;
@@ -88,10 +102,19 @@ export default function App() {
     if (!stillVisible) setSelectedKey(filtered[0]?.key || null);
   }, [filtered, selectedKey]);
 
-  const selected = filtered.find((item) => item.key === selectedKey)
+  const selectedCandidate = filtered.find((item) => item.key === selectedKey)
     || candidates.find((item) => item.key === selectedKey)
     || watchedCandidates.find((item) => item.key === selectedKey)
     || null;
+  const selectedWatchEntry = selectedCandidate ? watchEntries.get(selectedCandidate.key) : null;
+  const selected = selectedCandidate && selectedWatchEntry
+    ? { ...selectedCandidate, watched: true, watchHitCount: selectedWatchEntry.hitCount || 0 }
+    : selectedCandidate;
+
+  function selectCandidate(item) {
+    setSelectedKey(item.key);
+    setMobileDetailOpen(true);
+  }
 
   async function toggleWatch(item) {
     const watched = watchedKeys.has(item.key);
@@ -129,12 +152,13 @@ export default function App() {
       <Summary page={page} candidates={candidates} errorCount={report?.errors?.length || 0} />
       {error && <div className="app-error" role="alert">{error}</div>}
       <Filters filters={filters} onChange={setFilters} resultCount={filtered.length} />
-      <div className="workspace">
+      <div className={`workspace ${mobileDetailOpen ? "mobile-detail-visible" : ""}`}>
         <TokenTable
           items={filtered}
           selectedKey={selectedKey}
           watchedKeys={watchedKeys}
-          onSelect={(item) => setSelectedKey(item.key)}
+          showWatchHits={filters.priority === "saved"}
+          onSelect={selectCandidate}
         />
         <Inspector
           item={selected}
@@ -143,11 +167,12 @@ export default function App() {
           calibration={report?.calibration}
           page={page}
           onToggleWatch={toggleWatch}
+          onClose={() => setMobileDetailOpen(false)}
         />
       </div>
       <footer className="statusbar">
-        <span>只读模式 · 127.0.0.1 本机访问</span>
-        <span>{status?.scanning ? "GMGN 数据更新中" : `自动扫描间隔 ${status?.intervalSeconds || 120} 秒`}</span>
+        <span>{["127.0.0.1", "localhost"].includes(window.location.hostname) ? "只读模式 · 本机访问" : "登录保护 · 私有实例"}</span>
+        <span>{status?.scanning ? "GMGN 数据更新中" : `自动扫描间隔 ${status?.intervalSeconds || 300} 秒`}</span>
       </footer>
     </main>
   );

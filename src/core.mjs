@@ -44,6 +44,61 @@ function first(row, names) {
   return null;
 }
 
+const NARRATIVE_RULES = [
+  { key: "space", label: "太空 / 科幻", pattern: /asteroid|\b(moon|mars|space|rocket|alien|nasa|galaxy|cosmic)\b|星球|月球|火星|太空|宇宙|小行星/i },
+  { key: "tech", label: "AI / 科技", pattern: /\b(ai|gpt|agent|robot|gpu|cpu|nvidia|nvda|quantum|neural|tech)\b|人工智能|机器人|科技|量子/i },
+  { key: "animal", label: "动物 Meme", pattern: /(?:cat|dog|doge|shib|inu|pepe|frog|bear|bull|bee|bird|fish|hamster|goat|monkey|ape)\b|猫|狗|蛙|熊|牛|蜂|鸟|鱼|猿/i },
+  { key: "figure", label: "人物 / 名人热点", pattern: /\b(cz|elon|trump|musk|satoshi|vitalik)\b|马斯克|特朗普|中本聪/i },
+  { key: "finance", label: "金融 / 资产梗", pattern: /\b(bitcoin|btc|ethereum|eth|solana|sol|gold|stock|dollar|coin)\b|比特币|黄金|股票|股东|股民|美元|财富/i },
+  { key: "community", label: "社区 / 文化", pattern: /\b(community|cto|cult|people|movement|culture|meme)\b|社区|文化|人民|信仰/i }
+];
+
+export function buildNarrativeProfile(candidate) {
+  const description = cleanText(candidate?.narrativeDescription, "", 280);
+  const identityText = `${candidate?.symbol || ""} ${candidate?.name || ""}`;
+  const matched = NARRATIVE_RULES.find((rule) => rule.pattern.test(identityText));
+  const hasTwitter = Boolean(candidate?.twitter && candidate.twitter !== "?");
+  const hasTelegram = Boolean(candidate?.telegram && candidate.telegram !== "?");
+  const hasIndependentWebsite = Boolean(candidate?.website
+    && candidate.website !== "?"
+    && !/(?:twitter\.com|x\.com|t\.me|telegram\.)/i.test(candidate.website));
+  const completeness = Math.min(100,
+    (description ? 40 : 0)
+    + (hasTwitter ? 20 : 0)
+    + (hasIndependentWebsite ? 20 : 0)
+    + (hasTelegram ? 10 : 0)
+    + (matched ? 10 : 0));
+
+  if (description) {
+    return {
+      category: matched?.label || "项目方自定义叙事",
+      categoryKey: matched?.key || "project",
+      summary: description,
+      source: "project",
+      sourceLabel: "项目方自述",
+      completeness
+    };
+  }
+  if (matched) {
+    return {
+      category: matched.label,
+      categoryKey: matched.key,
+      summary: `名称线索显示可能围绕「${matched.label}」主题；尚未获取项目方简介，需结合 X 与社区内容人工核对。`,
+      source: "inferred",
+      sourceLabel: "名称推断",
+      completeness
+    };
+  }
+  return {
+    category: "叙事待识别",
+    categoryKey: "unknown",
+    summary: "暂未获取项目方简介，名称也不足以可靠判断叙事；建议核对官方 X、网站与社区讨论。",
+    source: "unknown",
+    sourceLabel: "资料不足",
+    completeness
+  };
+}
+
 export function getCandidate(book, chain, address) {
   if (!isValidAddress(chain, address)) return null;
   const key = `${chain}:${address.toLowerCase()}`;
@@ -114,6 +169,7 @@ export function mergeMarketRow(candidate, row, source, stage = null) {
   put(candidate, "twitter", cleanText(first(row, ["twitter_username", "twitter_handle", "twitter"]) ?? links?.twitter_username, candidate.twitter));
   put(candidate, "website", cleanText(row.website ?? links?.website, candidate.website));
   put(candidate, "telegram", cleanText(row.telegram ?? links?.telegram, candidate.telegram));
+  put(candidate, "narrativeDescription", cleanText(row.description ?? links?.description, "", 280));
   candidate.hasSocial = Boolean(candidate.hasSocial || bool(first(row, ["has_at_least_one_social"])) || row.twitter_username || row.twitter || row.website || row.telegram || links?.twitter_username || links?.website || links?.telegram);
   put(candidate, "isHoneypot", bool(row.is_honeypot));
   put(candidate, "isWashTrading", bool(row.is_wash_trading));
@@ -328,6 +384,7 @@ export function scoreCandidateLegacy(candidate, options = {}) {
     kolMakers: [...candidate.kolMakers],
     evidenceFamilies: [...families],
     evidenceFamilyCount: families.size,
+    narrative: buildNarrativeProfile(candidate),
     score,
     phase,
     priority,
@@ -500,6 +557,7 @@ export function scoreCandidate(candidate, options = {}) {
     kolMakers: [...candidate.kolMakers],
     evidenceFamilies: [...families],
     evidenceFamilyCount: families.size,
+    narrative: buildNarrativeProfile(candidate),
     strategy: "safety",
     score,
     safetyScore: safety.safetyScore,

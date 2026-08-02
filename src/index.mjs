@@ -235,7 +235,7 @@ export async function scan(config, options = {}) {
     }
   }
   radarStore.recordCandidates([...trackingCandidates.values()], now);
-  radarStore.syncWatchSnapshots(candidates, now);
+  radarStore.syncWatchSnapshots([...discoveryCandidates, ...candidates], now);
   const outcomeSamples = await sampleTrackedOutcomes(now, new Set(candidates.map((candidate) => candidate.key)), config, notices);
   const calibration = radarStore.calibrationContext(config.calibrationMinSamples ?? 50);
   candidates = radarStore.decorateCandidates(candidates, calibration);

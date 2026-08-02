@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { timingSafeEqual } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { access, stat } from "node:fs/promises";
 import http from "node:http";
@@ -10,8 +11,11 @@ import { radarStore } from "./store.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const publicDir = path.join(root, "web", "dist");
-const host = "127.0.0.1";
+const host = process.env.MEME_RADAR_HOST || "127.0.0.1";
 const port = Number(process.env.MEME_RADAR_PORT || 8787);
+const authUser = process.env.MEME_RADAR_USER || "";
+const authPassword = process.env.MEME_RADAR_PASSWORD || "";
+const authEnabled = Boolean(authUser && authPassword);
 const shouldOpen = process.argv.includes("--open");
 const config = await loadConfig();
 
@@ -33,6 +37,28 @@ function json(response, code, data) {
     "X-Content-Type-Options": "nosniff"
   });
   response.end(JSON.stringify(data));
+}
+
+function isAuthorized(request) {
+  if (!authEnabled) return true;
+  const header = String(request.headers.authorization || "");
+  if (!header.startsWith("Basic ")) return false;
+  let supplied;
+  try { supplied = Buffer.from(header.slice(6), "base64").toString("utf8"); }
+  catch { return false; }
+  const expectedBuffer = Buffer.from(`${authUser}:${authPassword}`);
+  const suppliedBuffer = Buffer.from(supplied);
+  return suppliedBuffer.length === expectedBuffer.length && timingSafeEqual(suppliedBuffer, expectedBuffer);
+}
+
+function requireAuthorization(response) {
+  response.writeHead(401, {
+    "Content-Type": "text/plain; charset=utf-8",
+    "Cache-Control": "no-store",
+    "WWW-Authenticate": "Basic realm=\"Meme Radar\", charset=\"UTF-8\"",
+    "X-Content-Type-Options": "nosniff"
+  });
+  response.end("需要登录后访问 Meme Radar");
 }
 
 async function requestJson(request) {
@@ -73,6 +99,7 @@ function mime(file) {
     ".js": "text/javascript; charset=utf-8",
     ".css": "text/css; charset=utf-8",
     ".json": "application/json; charset=utf-8",
+    ".webmanifest": "application/manifest+json; charset=utf-8",
     ".svg": "image/svg+xml",
     ".png": "image/png",
     ".ico": "image/x-icon"
@@ -105,6 +132,7 @@ const server = http.createServer(async (request, response) => {
   try {
     const url = new URL(request.url, `http://${host}:${port}`);
     if (url.pathname === "/api/health" && request.method === "GET") return json(response, 200, { ok: true });
+    if (!isAuthorized(request)) return requireAuthorization(response);
     if (url.pathname === "/api/status" && request.method === "GET") return json(response, 200, status);
     if (url.pathname === "/api/report" && request.method === "GET") {
       if (!latestReport) return json(response, 202, { scanning: status.scanning, message: "首次扫描尚未完成" });

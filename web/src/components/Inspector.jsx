@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { CheckIcon, CopyIcon, ExternalLinkIcon, StarIcon } from "./Icons.jsx";
-import { familyLabels, localTime, money, phaseLabels } from "../lib/format.js";
+import { compact, familyLabels, localTime, money, phaseLabels } from "../lib/format.js";
 import { gmgnTokenUrl } from "../lib/gmgn.js";
 
 function List({ items, empty, tone }) {
@@ -50,7 +50,52 @@ function signedPercent(value) {
   return `${value >= 0 ? "+" : ""}${(value * 100).toFixed(1)}%`;
 }
 
-export default function Inspector({ item, watched, watchBusy, calibration, page, onToggleWatch }) {
+function signedMoney(value) {
+  if (!Number.isFinite(value)) return "—";
+  return `${value >= 0 ? "+" : "−"}${money(Math.abs(value))}`;
+}
+
+const developerTagLabels = {
+  bundler: "捆绑",
+  rat_trader: "老鼠仓",
+  sniper: "狙击",
+  whale: "鲸鱼",
+  fresh_wallet: "新钱包",
+  wash_trader: "刷量",
+  paper_hands: "纸手",
+  renowned: "名人",
+  kol: "KOL",
+  smart_degen: "聪明钱",
+  pump_smart: "聪明钱"
+};
+
+function developerTags(wallet) {
+  return [...new Set([...(wallet.makerTokenTags || []), ...(wallet.tags || [])])]
+    .filter((tag) => !["creator", "dev_team", "top_holder", "transfer_in"].includes(tag))
+    .map((tag) => developerTagLabels[tag] || tag);
+}
+
+function scoreTone(score) {
+  if (score >= 70) return "high";
+  if (score >= 55) return "medium";
+  return "low";
+}
+
+function completenessTone(value) {
+  if (!Number.isFinite(value)) return "unknown";
+  if (value >= 90) return "complete";
+  if (value >= 70) return "partial";
+  return "low";
+}
+
+function hitTone(count) {
+  if (count >= 6) return "strong";
+  if (count >= 3) return "steady";
+  if (count >= 1) return "new";
+  return "empty";
+}
+
+export default function Inspector({ item, watched, watchBusy, calibration, page, onToggleWatch, onClose }) {
   const [copied, setCopied] = useState(false);
   if (!item) {
     return <aside className="inspector empty-inspector"><p>选择一个候选查看证据与风险。</p></aside>;
@@ -68,8 +113,22 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
   const kolEntryMarketCap = Number.isFinite(kolAverageCost) && kolAverageCost > 0 && Number.isFinite(item.price) && item.price > 0 && Number.isFinite(item.marketCap)
     ? item.marketCap * kolAverageCost / item.price
     : null;
+  const smartHolderCount = item.holderAnalysis?.currentSmartHolderCount;
+  const kolHolderCount = item.holderAnalysis?.currentKolHolderCount;
+  const narrative = item.narrative || {
+    category: "叙事待扫描",
+    categoryKey: "unknown",
+    summary: "等待下一轮扫描获取项目简介与叙事线索。",
+    source: "unknown",
+    sourceLabel: "待扫描",
+    completeness: 0
+  };
   return (
     <aside className="inspector">
+      <div className="mobile-detail-toolbar">
+        <button type="button" onClick={onClose} aria-label="返回代币列表">← 返回列表</button>
+        <strong>{item.symbol} 详情</strong>
+      </div>
       <div className="inspector-heading">
         <div>
           <span className={`priority priority-${item.priority.toLowerCase()}`}>{item.priority}</span>
@@ -87,7 +146,7 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
           >
             <StarIcon filled={watched} />
           </button>
-          <div className="score-orbit" aria-label={`${item.score} 分`}>
+          <div className={`score-orbit score-${scoreTone(item.score)}`} aria-label={`${item.score} 分`}>
             <strong>{item.score}</strong><span>/100</span>
           </div>
         </div>
@@ -115,15 +174,61 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
       </a>
 
       <div className="metric-grid">
-        <div><span>市值</span><strong>{money(item.marketCap)}</strong></div>
-        <div><span>流动性</span><strong>{money(item.liquidity)}</strong></div>
+        <div className="metric-market"><span>市值</span><strong>{money(item.marketCap)}</strong></div>
+        <div className="metric-liquidity"><span>流动性</span><strong>{money(item.liquidity)}</strong></div>
         <div className={`safety-metric safety-${item.safetyStatus || "pending"}`}>
           <span>抗跑路安全分</span>
           <strong>{Number.isFinite(item.safetyScore) ? `${item.safetyScore}/100` : "待评估"}</strong>
           <small>{safetyStatus(item.safetyStatus)}</small>
         </div>
-        <div><span>数据完整度</span><strong>{Number.isFinite(item.dataCompleteness) ? `${item.dataCompleteness}%` : "—"}</strong></div>
+        <div className={`metric-completeness completeness-${completenessTone(item.dataCompleteness)}`}>
+          <span>数据完整度</span>
+          <strong>{Number.isFinite(item.dataCompleteness) ? `${item.dataCompleteness}%` : "—"}</strong>
+        </div>
+        {watched && (
+          <div className={`watch-hit-metric hit-${hitTone(item.watchHitCount || 0)}`}>
+            <span>累计命中</span>
+            <strong>{item.watchHitCount || 0} 轮</strong>
+            <small>收藏后进入 ALERT / WATCH 才累计</small>
+          </div>
+        )}
       </div>
+
+      <div className="key-signal-strip" aria-label="关键指标速览">
+        <span className={`key-signal key-signal-smart ${smartHolderCount > 0 ? "is-active" : "is-empty"}`}>
+          聪明钱 <strong>{Number.isFinite(smartHolderCount) ? compact(smartHolderCount) : "—"}</strong>
+        </span>
+        <span className={`key-signal key-signal-kol ${kolHolderCount > 0 ? "is-active" : "is-empty"}`}>
+          KOL <strong>{Number.isFinite(kolHolderCount) ? compact(kolHolderCount) : "—"}</strong>
+        </span>
+        <span className={`key-signal key-signal-evidence ${(item.evidenceFamilyCount || 0) >= 2 ? "is-active" : "is-empty"}`}>
+          独立信号 <strong>{item.evidenceFamilyCount || 0}</strong>
+        </span>
+        <span className="key-signal key-signal-holder is-active">
+          持币地址 <strong>{compact(item.holderCount)}</strong>
+        </span>
+      </div>
+
+      <section className={`narrative-card narrative-card-${narrative.categoryKey}`}>
+        <div className="section-heading-row">
+          <h3>代币叙事</h3>
+          <div className="narrative-card-tags">
+            <span className={`narrative-badge narrative-${narrative.categoryKey}`}>{narrative.category}</span>
+            <span className={`narrative-source source-${narrative.source}`}>{narrative.sourceLabel}</span>
+          </div>
+        </div>
+        <p>{narrative.summary}</p>
+        <div className="narrative-completeness">
+          <span>叙事资料完整度</span>
+          <div><i style={{ "--narrative-completeness": `${narrative.completeness || 0}%` }} /></div>
+          <strong>{narrative.completeness || 0}%</strong>
+        </div>
+        <small>
+          {narrative.source === "project"
+            ? "该内容来自项目方元数据，仅代表其自述，不代表真实性或投资价值。"
+            : "当前为有限资料下的主题线索，不用于证明项目真实性或上涨概率。"}
+        </small>
+      </section>
 
       <section className="inspector-section evidence-summary">
         <div className="section-heading-row">
@@ -161,6 +266,59 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
         ) : (
           <p className="list-empty">{item.deepAnalysisError || "当前候选尚未完成 Top100 持仓关联尽调；未验证时不会进入 ALERT。"}</p>
         )}
+      </section>
+
+      <section className="inspector-section">
+        <div className="section-heading-row">
+          <h3>开发者 / 团队钱包</h3>
+          <span className="holder-count">{item.holderAnalysis?.devWalletCount ?? "—"} 个</span>
+        </div>
+        {Array.isArray(item.holderAnalysis?.developerWallets) ? (
+          <>
+            <div className="chip-grid dev-summary-grid">
+              <div><span>当前仍持仓</span><strong>{item.holderAnalysis.devActiveWalletCount ?? 0} 个</strong></div>
+              <div><span>合计持仓</span><strong>{percent(item.holderAnalysis.devHoldingRate)}</strong></div>
+              <div><span>KOL / 名人标签</span><strong>{item.holderAnalysis.devRenownedWalletCount ?? 0} 个</strong></div>
+              <div><span>已实现利润</span><strong>{signedMoney(item.holderAnalysis.devRealizedProfit)}</strong></div>
+            </div>
+            {item.holderAnalysis.devSockPuppet && (
+              <div className="dev-risk-banner">发现 Dev 转出筹码仍在 Top100 钱包中，疑似换马甲继续控盘。</div>
+            )}
+            {item.holderAnalysis.developerWallets.length ? (
+              <div className="dev-wallet-list">
+                {item.holderAnalysis.developerWallets.map((wallet) => (
+                  <div className="dev-wallet-card" key={wallet.address}>
+                    <div className="dev-wallet-head">
+                      <div>
+                        <strong>{wallet.name || (wallet.role === "creator" ? "主开发者" : "团队钱包")}</strong>
+                        <span>{wallet.twitterUsername ? `@${wallet.twitterUsername}` : "未识别公开身份"}</span>
+                      </div>
+                      <div className="dev-badges">
+                        <span>{wallet.role === "creator" ? "Creator" : "Dev Team"}</span>
+                        {wallet.isRenowned && <span className="identity-badge">KOL / 名人</span>}
+                        {wallet.isSmartMoney && <span className="identity-badge">聪明钱</span>}
+                      </div>
+                    </div>
+                    <button className="dev-wallet-address" type="button" onClick={() => navigator.clipboard.writeText(wallet.address)} title={`点击复制 ${wallet.address}`}>
+                      {wallet.address}
+                    </button>
+                    <div className="dev-wallet-metrics">
+                      <span>{wallet.isHolding ? `持仓 ${holderPercent(wallet.amountPercentage)} · ${money(wallet.usdValue)}` : "已清仓"}</span>
+                      <span>均价 {tokenPrice(wallet.averageCost)} · 浮盈 {signedPercent(wallet.unrealizedPnl)}</span>
+                      <span>已实现 {signedMoney(wallet.realizedProfit)} · 买 {wallet.buyTxCount} / 卖 {wallet.sellTxCount}</span>
+                      <span>标签 {developerTags(wallet).join(" · ") || "无附加标签"}</span>
+                    </div>
+                    {wallet.transferredToTop100 && <div className="dev-transfer-warning">转出目标仍在 Top100：{shortWallet(wallet.transferOutAddress)}</div>}
+                  </div>
+                ))}
+              </div>
+            ) : <p className="list-empty">GMGN 未识别到开发者标签钱包；这不代表开发者身份安全或已放弃控制。</p>}
+            <p className="holder-note">
+              身份与标签来自 GMGN；“KOL / 名人”仅在钱包带 renowned/kol 标签时显示。
+              {item.holderAnalysis.developerCoverage === "top100-only" ? " 当前开发者名单仅覆盖 Top100，可能遗漏已清仓钱包。" : " 已包含 GMGN dev 标签查询结果，包括部分已清仓钱包。"}
+            </p>
+          </>
+        ) : <p className="list-empty">等待下一轮深度扫描生成开发者信息。</p>}
       </section>
 
       <section className="inspector-section">

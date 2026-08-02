@@ -1,6 +1,6 @@
 {
   "chains": ["sol", "bsc"],
-  "watchIntervalSeconds": 120,
+  "watchIntervalSeconds": 300,
   "clusterWindowMinutes": 30,
   "alertScore": 70,
   "watchScore": 50,

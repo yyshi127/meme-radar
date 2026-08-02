@@ -26,6 +26,7 @@ export function createRadarStore(file = path.join(root, "data", "radar.sqlite"))
       address TEXT NOT NULL,
       added_at INTEGER NOT NULL,
       last_seen_at INTEGER,
+      hit_count INTEGER NOT NULL DEFAULT 0,
       snapshot_json TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS holder_cache (
@@ -70,6 +71,11 @@ export function createRadarStore(file = path.join(root, "data", "radar.sqlite"))
     CREATE INDEX IF NOT EXISTS idx_wallet_signals_wallet ON wallet_signals(wallet, kind);
   `);
 
+  const watchlistColumns = new Set(db.prepare("PRAGMA table_info(watchlist)").all().map((column) => column.name));
+  if (!watchlistColumns.has("hit_count")) {
+    db.exec("ALTER TABLE watchlist ADD COLUMN hit_count INTEGER NOT NULL DEFAULT 0");
+  }
+
   const statements = {
     putWatch: db.prepare(`
       INSERT INTO watchlist(key, chain, address, added_at, last_seen_at, snapshot_json)
@@ -81,7 +87,7 @@ export function createRadarStore(file = path.join(root, "data", "radar.sqlite"))
     deleteWatch: db.prepare("DELETE FROM watchlist WHERE key=?"),
     listWatch: db.prepare("SELECT * FROM watchlist ORDER BY added_at DESC"),
     watchKeys: db.prepare("SELECT key FROM watchlist"),
-    updateWatch: db.prepare("UPDATE watchlist SET last_seen_at=?, snapshot_json=? WHERE key=?"),
+    updateWatch: db.prepare("UPDATE watchlist SET last_seen_at=?, snapshot_json=?, hit_count=hit_count+1 WHERE key=?"),
     getHolderCache: db.prepare("SELECT * FROM holder_cache WHERE key=?"),
     putHolderCache: db.prepare(`
       INSERT INTO holder_cache(key, checked_at, status, payload_json, error)
@@ -131,8 +137,14 @@ export function createRadarStore(file = path.join(root, "data", "radar.sqlite"))
         address: row.address,
         addedAt: new Date(row.added_at * 1000).toISOString(),
         lastSeenAt: row.last_seen_at ? new Date(row.last_seen_at * 1000).toISOString() : null,
+        hitCount: Number(row.hit_count || 0),
         isLive: current.has(row.key),
-        snapshot: { ...snapshot, watched: true, isLive: current.has(row.key) }
+        snapshot: {
+          ...snapshot,
+          watched: true,
+          isLive: current.has(row.key),
+          watchHitCount: Number(row.hit_count || 0)
+        }
       };
     });
   }
@@ -143,8 +155,11 @@ export function createRadarStore(file = path.join(root, "data", "radar.sqlite"))
 
   function syncWatchSnapshots(candidates, now = Math.floor(Date.now() / 1000)) {
     const watched = watchedKeys();
+    const synced = new Set();
     for (const candidate of candidates) {
-      if (watched.has(candidate.key)) statements.updateWatch.run(now, JSON.stringify(candidate), candidate.key);
+      if (!watched.has(candidate.key) || synced.has(candidate.key) || !["ALERT", "WATCH"].includes(candidate.priority)) continue;
+      statements.updateWatch.run(now, JSON.stringify(candidate), candidate.key);
+      synced.add(candidate.key);
     }
   }
 

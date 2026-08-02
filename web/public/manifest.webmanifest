@@ -1,0 +1,25 @@
+{
+  "name": "Meme Radar 潜力币雷达",
+  "short_name": "Meme Radar",
+  "description": "早期 Meme 币信号发现与重点观察雷达",
+  "lang": "zh-CN",
+  "start_url": "/discovery",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fbfdfd",
+  "theme_color": "#12a489",
+  "icons": [
+    {
+      "src": "/icons/meme-radar.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/meme-radar.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

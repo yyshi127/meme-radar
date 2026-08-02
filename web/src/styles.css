@@ -322,6 +322,21 @@ td { padding: 0 10px; color: #bac4cf; font-size: 12px; overflow: hidden; text-ov
 .holder-row strong { overflow: hidden; color: #dce3ea; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .holder-row span { color: var(--muted); font-size: 8px; line-height: 1.35; }
 .holder-note { margin: 9px 0 0; color: #737f8c; font-size: 8px; line-height: 1.55; }
+.dev-summary-grid { margin-bottom: 9px; }
+.dev-risk-banner { margin-bottom: 9px; padding: 9px 10px; border: 1px solid #713c35; border-radius: 6px; background: var(--alert-soft); color: #f2a398; font-size: 9px; line-height: 1.5; }
+.dev-wallet-list { display: grid; gap: 8px; }
+.dev-wallet-card { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--border-soft); border-radius: 7px; background: #0f141a; }
+.dev-wallet-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.dev-wallet-head > div:first-child { min-width: 0; display: grid; gap: 3px; }
+.dev-wallet-head strong { overflow: hidden; color: #dce3ea; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.dev-wallet-head span, .dev-wallet-metrics span { color: var(--muted); font-size: 8px; }
+.dev-badges { display: flex; flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+.dev-badges span { padding: 3px 5px; border: 1px solid #59492b; border-radius: 4px; background: #211c13; color: #d7b870; }
+.dev-badges .identity-badge { border-color: #315d52; background: #13251f; color: #7ee0bd; }
+.dev-wallet-address { overflow: hidden; padding: 0; border: 0; background: transparent; color: #78aee9; font-family: "Cascadia Code", Consolas, monospace; font-size: 8px; text-align: left; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.dev-wallet-address:hover { color: #a9cefa; }
+.dev-wallet-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; }
+.dev-transfer-warning { padding-top: 7px; border-top: 1px solid #4e302d; color: #ef9a8e; font-size: 8px; }
 .confidence-grid small { overflow: hidden; color: var(--subtle); font-size: 8px; line-height: 1.45; }
 .calibration-note { margin: 9px 0 0; color: #737f8c; font-size: 8px; line-height: 1.55; }
 .evidence-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }

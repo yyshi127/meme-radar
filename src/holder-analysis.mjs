@@ -58,6 +58,47 @@ function currentTaggedHolders(payload, fallback, tagNames) {
   return [...unique.values()].sort((a, b) => b.amountPercentage - a.amountPercentage);
 }
 
+function developerWalletList(payload, fallback, top100Addresses) {
+  const queried = holderList(payload);
+  const source = queried ?? fallback.filter((holder) => hasTag(holder, "creator") || hasTag(holder, "dev_team"));
+  const unique = new Map();
+  for (const holder of source) {
+    const address = String(holder?.address || "");
+    if (!address || Number(holder?.addr_type || 0) !== 0) continue;
+    const makerTokenTags = [...new Set(holder?.maker_token_tags || [])];
+    const walletTags = [...tags(holder)];
+    const transferOutAddress = String(holder?.token_transfer_out?.address || holder?.token_transfer?.address || "");
+    const balance = Number(holder?.balance || 0);
+    unique.set(address.toLowerCase(), {
+      address,
+      role: makerTokenTags.includes("creator") ? "creator" : "team",
+      name: walletText(holder.twitter_name) || walletText(holder.name),
+      twitterUsername: walletText(holder.twitter_username),
+      balance,
+      amountPercentage: rate(holder),
+      usdValue: Number(holder?.usd_value || 0),
+      isHolding: balance >= 1,
+      isRenowned: walletTags.includes("renowned") || walletTags.includes("kol"),
+      isSmartMoney: walletTags.includes("smart_degen") || walletTags.includes("pump_smart"),
+      makerTokenTags,
+      tags: walletTags,
+      averageCost: finiteNumber(holder.avg_cost),
+      unrealizedPnl: finiteNumber(holder.unrealized_pnl),
+      realizedProfit: finiteNumber(holder.realized_profit),
+      buyTxCount: Number(holder.buy_tx_count_cur || 0),
+      sellTxCount: Number(holder.sell_tx_count_cur || 0),
+      sellAmountPercentage: finiteNumber(holder.sell_amount_percentage),
+      lastActiveTimestamp: Number(holder.last_active_timestamp || 0),
+      transferOutAddress: transferOutAddress || null,
+      transferredToTop100: Boolean(transferOutAddress && top100Addresses.has(transferOutAddress.toLowerCase()))
+    });
+  }
+  return [...unique.values()].sort((a, b) =>
+    (b.role === "creator") - (a.role === "creator")
+    || b.isHolding - a.isHolding
+    || b.amountPercentage - a.amountPercentage);
+}
+
 function looksLikeExchangeFunding(transfer) {
   const name = String(transfer?.name || "").toLowerCase();
   return /binance|okx|bybit|coinbase|kraken|kucoin|gate|mexc|bitget|hot wallet|exchange/.test(name);
@@ -79,7 +120,7 @@ export function analyzeHolders(payload, options = {}) {
   const wash = normal.filter((holder) => hasTag(holder, "wash_trader"));
   const fresh = normal.filter((holder) => hasTag(holder, "fresh_wallet"));
   const airdrop = normal.filter((holder) => Number(holder?.buy_tx_count_cur || 0) === 0 && rate(holder) > 0);
-  const devs = normal.filter((holder) => hasTag(holder, "creator") || hasTag(holder, "dev_team"));
+  const top100Devs = normal.filter((holder) => hasTag(holder, "creator") || hasTag(holder, "dev_team"));
   const smartList = holderList(options.smartPayload);
   const kolList = holderList(options.kolPayload);
   const currentSmartHolders = currentTaggedHolders(options.smartPayload, normal, ["smart_degen", "pump_smart"]);
@@ -127,8 +168,10 @@ export function analyzeHolders(payload, options = {}) {
   const coordinatedAddresses = new Set(coordinatedGroups.flatMap(([, group]) => group.map((holder) => holder.address)));
 
   const holderByAddress = new Map(holders.map((holder) => [String(holder.address || "").toLowerCase(), holder]));
+  const developerSource = holderList(options.devPayload) ?? top100Devs;
+  const developerWallets = developerWalletList(options.devPayload, top100Devs, new Set(holderByAddress.keys()));
   let devSockPuppet = false;
-  for (const dev of devs) {
+  for (const dev of developerSource) {
     const targets = [dev?.token_transfer_out?.address, dev?.token_transfer?.address]
       .map((value) => String(value || "").toLowerCase())
       .filter(Boolean);
@@ -143,7 +186,7 @@ export function analyzeHolders(payload, options = {}) {
   const badRate = sumRate(normal.filter((holder) => badAddresses.has(holder.address)));
 
   return {
-    analysisVersion: 3,
+    analysisVersion: 4,
     status: "verified",
     checkedAt: new Date().toISOString(),
     sampleSize: holders.length,
@@ -164,8 +207,13 @@ export function analyzeHolders(payload, options = {}) {
     coordinatedRate: sumRate(normal.filter((holder) => coordinatedAddresses.has(holder.address))),
     coordinatedWalletCount: coordinatedAddresses.size,
     coordinatedGroupCount: coordinatedGroups.length,
-    devHoldingRate: sumRate(devs),
-    devWalletCount: devs.length,
+    devHoldingRate: developerWallets.filter((wallet) => wallet.isHolding).reduce((total, wallet) => total + wallet.amountPercentage, 0),
+    devWalletCount: developerWallets.length,
+    devActiveWalletCount: developerWallets.filter((wallet) => wallet.isHolding).length,
+    devRenownedWalletCount: developerWallets.filter((wallet) => wallet.isRenowned).length,
+    devRealizedProfit: developerWallets.reduce((total, wallet) => total + (wallet.realizedProfit || 0), 0),
+    developerWallets,
+    developerCoverage: holderList(options.devPayload) === null ? "top100-only" : "all-tagged",
     devSockPuppet,
     currentSmartHolderCount: currentSmartHolders.length,
     currentSmartHolderRate: currentSmartHolders.reduce((total, holder) => total + holder.amountPercentage, 0),

@@ -1,5 +1,6 @@
 import { RefreshIcon } from "./Icons.jsx";
 import { localTime } from "../lib/format.js";
+import InstallApp from "./InstallApp.jsx";
 
 export default function Header({ page, pages, status, generatedAt, onScan }) {
   const scanning = Boolean(status?.scanning);
@@ -8,8 +9,8 @@ export default function Header({ page, pages, status, generatedAt, onScan }) {
       <div className="brand-block">
         <div className="brand-mark" aria-hidden="true"><span /></div>
         <div>
-          <h1>{page.name}</h1>
-          <p>Meme Radar · {page.subtitle}</p>
+          <h1>Meme Radar</h1>
+          <p>{page.name} · {page.subtitle}</p>
         </div>
       </div>
       <nav className="page-nav" aria-label="雷达榜单">
@@ -21,6 +22,7 @@ export default function Header({ page, pages, status, generatedAt, onScan }) {
         ))}
       </nav>
       <div className="topbar-actions">
+        <InstallApp />
         <div className="sync-state" aria-live="polite">
           <span className={`status-dot ${scanning ? "is-scanning" : ""}`} />
           <div>

@@ -16,6 +16,7 @@ test("Top100 持仓接口瞬时超时会自动重试", async () => {
       return { data: { list: [{ address: "holder", addr_type: 0, amount_percentage: 0.05 }] } };
     }
     if (args.includes("holders")) return { data: { list: [] } };
+    if (args.includes("info")) return { data: { link: { description: "A retry community narrative." } } };
     return { data: { open_source: 1, renounced: 1, is_honeypot: 0 } };
   };
   const store = {
@@ -33,7 +34,9 @@ test("Top100 持仓接口瞬时超时会自动重试", async () => {
   assert.equal(result.selected, 1);
   assert.equal(topHolderCalls, 2);
   assert.equal(candidate.verificationStatus, "verified");
+  assert.equal(candidate.narrativeDescription, "A retry community narrative.");
   assert.equal(cached[1], "verified");
+  assert.equal(cached[2].metadataVersion, 1);
 });
 
 test("深度分析名额优先覆盖 ALERT/WATCH，而不是高分 SKIP", async () => {

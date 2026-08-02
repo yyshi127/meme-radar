@@ -1,12 +1,49 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { assessSafety, getCandidate, mergeMarketRow, mergeSignal, mergeTrade, scoreCandidate, scoreCandidateEarly, scoreCandidateLegacy } from "../src/core.mjs";
+import { assessSafety, buildNarrativeProfile, getCandidate, mergeMarketRow, mergeSignal, mergeTrade, scoreCandidate, scoreCandidateEarly, scoreCandidateLegacy } from "../src/core.mjs";
 
 const SOL = "So11111111111111111111111111111111111111112";
 
 function candidate() {
   return getCandidate(new Map(), "sol", SOL);
 }
+
+test("叙事优先采用项目方简介，并区分名称推断与资料不足", () => {
+  const projectNarrative = buildNarrativeProfile({
+    symbol: "AIBOT",
+    name: "AI Robot",
+    narrativeDescription: "An autonomous robot community token.",
+    twitter: "https://x.com/aibot",
+    website: "https://aibot.example"
+  });
+  assert.equal(projectNarrative.source, "project");
+  assert.equal(projectNarrative.category, "AI / 科技");
+  assert.equal(projectNarrative.summary, "An autonomous robot community token.");
+  assert.equal(projectNarrative.completeness, 90);
+
+  const inferred = buildNarrativeProfile({ symbol: "BABYASTEROID", name: "BabyAsteroid" });
+  assert.equal(inferred.source, "inferred");
+  assert.equal(inferred.category, "太空 / 科幻");
+  assert.match(inferred.summary, /尚未获取项目方简介/);
+
+  assert.equal(buildNarrativeProfile({ symbol: "BTCAT", name: "BitCat" }).category, "动物 Meme");
+
+  const unknown = buildNarrativeProfile({ symbol: "XYZ", name: "XYZ" });
+  assert.equal(unknown.source, "unknown");
+  assert.equal(unknown.completeness, 0);
+});
+
+test("GMGN link.description 被清洗并进入评分结果的叙事卡", () => {
+  const item = candidate();
+  mergeMarketRow(item, {
+    symbol: "MOON",
+    name: "Moon Story",
+    link: { description: "  A moon\ncommunity story.  ", twitter_username: "moon" }
+  }, "detail");
+  const result = scoreCandidateLegacy(item);
+  assert.equal(result.narrative.source, "project");
+  assert.equal(result.narrative.summary, "A moon community story.");
+});
 
 test("三钱包聪明钱集群 + 市场信号进入 ALERT", () => {
   const item = candidate();

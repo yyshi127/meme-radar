@@ -7,6 +7,7 @@ function maxKnown(current, next) {
 }
 
 function applyPayload(candidate, payload) {
+  if (payload?.info) mergeMarketRow(candidate, payload.info, "deep-info");
   if (payload?.security) mergeMarketRow(candidate, payload.security, "deep-security");
   if (payload?.holderAnalysis) {
     candidate.holderAnalysis = payload.holderAnalysis;
@@ -74,7 +75,9 @@ export async function enrichDeepCandidates(candidates, initialScores, options) {
   await mapLimit(selectedKeys.slice(0, limit), concurrency, async (key) => {
     const candidate = byKey.get(key);
     const cached = store.getHolderCache(key, cacheSeconds);
-    if (cached?.status === "verified" && cached.payload?.holderAnalysis?.analysisVersion === 3) {
+    if (cached?.status === "verified"
+      && cached.payload?.holderAnalysis?.analysisVersion === 4
+      && cached.payload?.metadataVersion === 1) {
       applyPayload(candidate, cached.payload);
       return;
     }
@@ -86,13 +89,15 @@ export async function enrichDeepCandidates(candidates, initialScores, options) {
     }
 
     try {
-      const [holdersResult, securityResult] = await Promise.allSettled([
+      const [holdersResult, securityResult, infoResult] = await Promise.allSettled([
         gmgnWithRetry(gmgn, ["token", "holders", "--chain", candidate.chain, "--address", candidate.address, "--limit", "100", "--raw"]),
-        gmgnWithRetry(gmgn, ["token", "security", "--chain", candidate.chain, "--address", candidate.address, "--raw"])
+        gmgnWithRetry(gmgn, ["token", "security", "--chain", candidate.chain, "--address", candidate.address, "--raw"]),
+        gmgnWithRetry(gmgn, ["token", "info", "--chain", candidate.chain, "--address", candidate.address, "--raw"])
       ]);
       if (holdersResult.status !== "fulfilled") throw holdersResult.reason;
       let smartPayload;
       let kolPayload;
+      let devPayload;
       try {
         smartPayload = (await gmgnWithRetry(gmgn, ["token", "holders", "--chain", candidate.chain, "--address", candidate.address, "--tag", "smart_degen", "--limit", "100", "--raw"])).data;
       } catch {
@@ -103,12 +108,19 @@ export async function enrichDeepCandidates(candidates, initialScores, options) {
       } catch {
         notices.push(`${candidate.chain}/${candidate.symbol}: 当前 KOL 名单仅覆盖 Top100`);
       }
-      const holderAnalysis = analyzeHolders(holdersResult.value.data, { smartPayload, kolPayload });
+      try {
+        devPayload = (await gmgnWithRetry(gmgn, ["token", "holders", "--chain", candidate.chain, "--address", candidate.address, "--tag", "dev", "--limit", "20", "--raw"])).data;
+      } catch {
+        notices.push(`${candidate.chain}/${candidate.symbol}: 开发者名单仅覆盖 Top100`);
+      }
+      const holderAnalysis = analyzeHolders(holdersResult.value.data, { smartPayload, kolPayload, devPayload });
       const security = securityResult.status === "fulfilled" ? securityResult.value.data : null;
-      const payload = { holderAnalysis, security };
+      const info = infoResult.status === "fulfilled" ? infoResult.value.data : null;
+      const payload = { holderAnalysis, security, info, metadataVersion: 1 };
       applyPayload(candidate, payload);
       store.putHolderCache(key, "verified", payload);
       if (!security) candidate.deepAnalysisError = "合约安全数据暂时不可用";
+      if (!info) notices.push(`${candidate.chain}/${candidate.symbol}: 叙事资料暂时不可用`);
     } catch (error) {
       const message = String(error?.message || error).slice(0, 300);
       candidate.verificationStatus = "failed";
