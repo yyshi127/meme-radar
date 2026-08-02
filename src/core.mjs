@@ -290,6 +290,28 @@ export function scoreCandidateLegacy(candidate, options = {}) {
   };
 }
 
+export function scoreCandidateEarly(candidate, options = {}) {
+  const legacy = scoreCandidateLegacy(candidate, options);
+  const hardStops = [...legacy.hardStops];
+  const holderCount = Number(candidate.holderCount);
+  const marketCap = Number(candidate.marketCap);
+
+  if (!Number.isFinite(holderCount)) hardStops.push("持币地址数据缺失");
+  else if (holderCount <= 300) hardStops.push(`持币地址 ${Math.floor(holderCount)} ≤ 300`);
+
+  if (!Number.isFinite(marketCap)) hardStops.push("市值数据缺失");
+  else if (marketCap < 10_000 || marketCap > 2_000_000) {
+    hardStops.push("市值不在 $10k–$2M 区间");
+  }
+
+  return {
+    ...legacy,
+    hardStops,
+    priority: hardStops.length ? "SKIP" : legacy.priority,
+    strategy: "early-v2"
+  };
+}
+
 export function scoreCandidate(candidate, options = {}) {
   const now = options.now || Math.floor(Date.now() / 1000);
   const alertScore = options.alertScore ?? 70;

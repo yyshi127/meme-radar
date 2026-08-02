@@ -213,8 +213,9 @@ th:nth-child(3) { width: 154px; }
 th:nth-child(4) { width: 62px; }
 th:nth-child(5) { width: 68px; }
 th:nth-child(6), th:nth-child(7) { width: 86px; }
-th:nth-child(8), th:nth-child(9), th:nth-child(10) { width: 66px; }
-th:nth-child(11) { width: 68px; }
+th:nth-child(8) { width: 76px; }
+th:nth-child(9), th:nth-child(10), th:nth-child(11) { width: 66px; }
+th:nth-child(12) { width: 68px; }
 th.number, td.number { text-align: right; font-variant-numeric: tabular-nums; }
 tbody tr {
   height: 54px;
@@ -347,7 +348,7 @@ td { padding: 0 10px; color: #bac4cf; font-size: 12px; overflow: hidden; text-ov
   .result-count { order: 4; margin-left: auto; }
   .workspace { display: block; }
   .table-region { max-height: 52vh; border-right: 0; border-bottom: 1px solid var(--border); }
-  table { min-width: 760px; }
+  table { min-width: 836px; }
   .inspector { max-height: none; padding: 20px 4px 24px; background: var(--background); }
   .statusbar { padding-top: 10px; }
 }

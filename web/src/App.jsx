@@ -10,7 +10,7 @@ const pages = {
   discovery: {
     key: "discovery",
     name: "猎星榜",
-    subtitle: "冻结的改造前原版策略 · legacy-v1",
+    subtitle: "早期优势策略 · early-v2",
     path: "/discovery"
   },
   safety: {

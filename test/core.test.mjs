@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getCandidate, mergeMarketRow, mergeSignal, mergeTrade, scoreCandidate, scoreCandidateLegacy } from "../src/core.mjs";
+import { getCandidate, mergeMarketRow, mergeSignal, mergeTrade, scoreCandidate, scoreCandidateEarly, scoreCandidateLegacy } from "../src/core.mjs";
 
 const SOL = "So11111111111111111111111111111111111111112";
 
@@ -198,4 +198,57 @@ test("猎星 legacy-v1 与改造前固定样本得分一致", () => {
   assert.equal(result.score, 89);
   assert.equal(result.priority, "ALERT");
   assert.equal(result.strategy, "legacy-v1");
+});
+
+test("猎星 early-v2 硬过滤持币地址不超过 300 的候选", () => {
+  const blocked = candidate();
+  mergeMarketRow(blocked, {
+    address: SOL,
+    market_cap: 100000,
+    liquidity: 30000,
+    holder_count: 300,
+    rug_ratio: 0.01,
+    top_10_holder_rate: 0.1,
+    bundler_rate: 0.01,
+    rat_trader_amount_rate: 0.01,
+    renounced_mint: 1,
+    renounced_freeze_account: 1
+  }, "trending");
+  assert.equal(scoreCandidateEarly(blocked).priority, "SKIP");
+  assert.match(scoreCandidateEarly(blocked).hardStops.join(" "), /持币地址 300/);
+
+  const allowed = candidate();
+  mergeMarketRow(allowed, {
+    address: SOL,
+    market_cap: 100000,
+    liquidity: 30000,
+    holder_count: 301,
+    rug_ratio: 0.01,
+    top_10_holder_rate: 0.1,
+    bundler_rate: 0.01,
+    rat_trader_amount_rate: 0.01,
+    renounced_mint: 1,
+    renounced_freeze_account: 1
+  }, "trending");
+  assert.doesNotMatch(scoreCandidateEarly(allowed).hardStops.join(" "), /持币地址/);
+});
+
+test("猎星 early-v2 只允许 $10k–$2M 市值区间", () => {
+  for (const [marketCap, shouldBlock] of [[9_999, true], [10_000, false], [2_000_000, false], [2_000_001, true]]) {
+    const item = candidate();
+    mergeMarketRow(item, {
+      address: SOL,
+      market_cap: marketCap,
+      liquidity: 30000,
+      holder_count: 500,
+      rug_ratio: 0.01,
+      top_10_holder_rate: 0.1,
+      bundler_rate: 0.01,
+      rat_trader_amount_rate: 0.01,
+      renounced_mint: 1,
+      renounced_freeze_account: 1
+    }, "trending");
+    const result = scoreCandidateEarly(item);
+    assert.equal(result.hardStops.some((reason) => reason.includes("市值不在")), shouldBlock, `${marketCap} 边界判断错误`);
+  }
 });

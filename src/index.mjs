@@ -13,6 +13,7 @@ import {
   mergeSignal,
   mergeTrade,
   scoreCandidate,
+  scoreCandidateEarly,
   scoreCandidateLegacy
 } from "./core.mjs";
 
@@ -169,7 +170,7 @@ export async function scan(config, options = {}) {
   for (const candidate of sourceCandidates) {
     candidate.walletReputationBonus = radarStore.walletReputation(candidate, calibrationBefore).bonus;
   }
-  const initialScores = sourceCandidates.map((candidate) => scoreCandidateLegacy(candidate, {
+  const initialScores = sourceCandidates.map((candidate) => scoreCandidateEarly(candidate, {
     now,
     ...config
   }));
@@ -252,7 +253,7 @@ export async function scan(config, options = {}) {
     deepAnalysis: { ...deepAnalysis, outcomeSamples },
     calibration: calibration.report,
     strategies: {
-      discovery: { name: "猎星榜", version: "legacy-v1", description: "冻结的改造前最后一版评分，不等待 Top100 完整尽调" },
+      discovery: { name: "猎星榜", version: "early-v2", description: "原版评分加持币地址 >300、市值 $10k–$2M 两项硬过滤" },
       safety: { name: "验金榜", description: "通过 Top100、关联钱包和合约安全进行严格确认" }
     }
   };

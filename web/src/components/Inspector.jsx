@@ -63,8 +63,8 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
       )}
 
       <div className={`strategy-banner strategy-banner-${page.key}`} role="note">
-        <strong>{page.key === "discovery" ? "猎星榜 · 原版 legacy-v1" : page.name}</strong>
-        <span>{page.key === "discovery" ? "使用改造前冻结评分；没有持币地址总数门槛，风险尽调不参与入榜。" : "已将关键风险缺失、关联控盘与高 Bundler 纳入过滤。"}</span>
+        <strong>{page.key === "discovery" ? "猎星榜 · early-v2" : page.name}</strong>
+        <span>{page.key === "discovery" ? "硬过滤：持币地址必须 >300，市值必须在 $10k–$2M；风险尽调不参与入榜。" : "已将关键风险缺失、关联控盘与高 Bundler 纳入过滤。"}</span>
       </div>
 
       <div className="contract-block">

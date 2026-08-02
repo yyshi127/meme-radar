@@ -24,6 +24,7 @@ export default function TokenTable({ items, selectedKey, watchedKeys, onSelect }
             <th>阶段</th>
             <th className="number">市值</th>
             <th className="number">流动性</th>
+            <th className="number">持币地址</th>
             <th className="number">聪明钱</th>
             <th className="number">KOL</th>
             <th className="number">信号</th>
@@ -69,6 +70,7 @@ export default function TokenTable({ items, selectedKey, watchedKeys, onSelect }
               <td><span className={`phase phase-${item.phase.toLowerCase()}`}>{phaseLabels[item.phase] || item.phase}</span></td>
               <td className="number">{money(item.marketCap)}</td>
               <td className="number">{money(item.liquidity)}</td>
+              <td className="number">{compact(item.holderCount)}</td>
               <td className="number signal-number">{compact(item.smartMakers?.length || 0)}</td>
               <td className="number">{compact(item.kolMakers?.length || 0)}</td>
               <td className="number">{item.evidenceFamilyCount || 0}</td>

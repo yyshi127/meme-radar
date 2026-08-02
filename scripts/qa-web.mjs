@@ -30,6 +30,7 @@ async function desktopQa() {
   assert.equal(await page.title(), "猎星榜 · Meme Radar");
   assert.equal((await page.locator("h1").textContent()).trim(), "猎星榜");
   assert.equal(await page.locator('.page-nav a[aria-current="page"]').textContent().then((text) => text.trim().slice(0, 3)), "猎星榜");
+  assert.ok(await page.getByRole("columnheader", { name: "持币地址" }).isVisible());
   const initialRows = await page.locator("tbody tr").count();
   assert.ok(initialRows > 0, "重点列表应至少包含一个候选");
 
