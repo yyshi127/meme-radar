@@ -22,6 +22,17 @@ function scoreStatus(status) {
   return "等待尽调";
 }
 
+function shortWallet(address) {
+  if (!address) return "未知地址";
+  return `${address.slice(0, 6)}…${address.slice(-4)}`;
+}
+
+function holderPercent(value) {
+  if (!Number.isFinite(value)) return "—";
+  const percentage = value * 100;
+  return `${percentage < 0.1 ? percentage.toFixed(3) : percentage.toFixed(2)}%`;
+}
+
 export default function Inspector({ item, watched, watchBusy, calibration, page, onToggleWatch }) {
   const [copied, setCopied] = useState(false);
   if (!item) {
@@ -116,10 +127,41 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
             <div><span>同源关联</span><strong>{percent(item.holderAnalysis.relatedRate)}</strong></div>
             <div><span>同步注资</span><strong>{percent(item.holderAnalysis.coordinatedRate)}</strong></div>
             <div><span>风险钱包</span><strong>{percent(item.holderAnalysis.riskWalletRate)}</strong></div>
+            <div><span>当前聪明钱</span><strong>{item.holderAnalysis.currentSmartHolderCount ?? "—"}</strong></div>
+            <div><span>当前 KOL</span><strong>{item.holderAnalysis.currentKolHolderCount ?? "—"}</strong></div>
           </div>
         ) : (
           <p className="list-empty">{item.deepAnalysisError || "当前候选尚未完成 Top100 持仓关联尽调；未验证时不会进入 ALERT。"}</p>
         )}
+      </section>
+
+      <section className="inspector-section">
+        <div className="section-heading-row">
+          <h3>当前持有的 KOL</h3>
+          <span className="holder-count">{item.holderAnalysis?.currentKolHolderCount ?? "—"} 个</span>
+        </div>
+        {Array.isArray(item.holderAnalysis?.currentKolHolders) ? (
+          item.holderAnalysis.currentKolHolders.length ? (
+            <div className="holder-list">
+              {item.holderAnalysis.currentKolHolders.map((holder) => (
+                <div className="holder-row" key={holder.address}>
+                  <div>
+                    <strong>{holder.name || shortWallet(holder.address)}</strong>
+                    <span>{holder.twitterUsername ? `@${holder.twitterUsername}` : shortWallet(holder.address)}</span>
+                  </div>
+                  <div>
+                    <strong>{holderPercent(holder.amountPercentage)}</strong>
+                    <span>买 {holder.buyTxCount} / 卖 {holder.sellTxCount}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : <p className="list-empty">未发现当前余额大于 0 的 GMGN KOL 钱包。</p>
+        ) : <p className="list-empty">等待下一轮深度扫描生成 KOL 持仓名单。</p>}
+        <p className="holder-note">
+          只统计当前余额大于 0 的 GMGN KOL 标签钱包；已清仓者不会计入。
+          {item.holderAnalysis?.currentKolCoverage === "top100-only" ? " 当前名单仅覆盖 Top100，可能不完整。" : ""}
+        </p>
       </section>
 
       <section className="inspector-section">

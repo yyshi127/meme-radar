@@ -11,6 +11,11 @@ function Verification({ status }) {
   return <span className={`verification verification-${status || "pending"}`}>{label}</span>;
 }
 
+function currentHolderCount(item, field) {
+  const value = item.holderAnalysis?.[field];
+  return Number.isFinite(value) ? compact(value) : "—";
+}
+
 export default function TokenTable({ items, selectedKey, watchedKeys, onSelect }) {
   return (
     <div className="table-region">
@@ -25,8 +30,8 @@ export default function TokenTable({ items, selectedKey, watchedKeys, onSelect }
             <th className="number">市值</th>
             <th className="number">流动性</th>
             <th className="number">持币地址</th>
-            <th className="number">聪明钱</th>
-            <th className="number">KOL</th>
+            <th className="number" title="当前余额大于 0 的 GMGN 聪明钱钱包">当前聪明钱</th>
+            <th className="number" title="当前余额大于 0 的 GMGN KOL 钱包">当前KOL</th>
             <th className="number">信号</th>
             <th>验证</th>
           </tr>
@@ -71,8 +76,8 @@ export default function TokenTable({ items, selectedKey, watchedKeys, onSelect }
               <td className="number">{money(item.marketCap)}</td>
               <td className="number">{money(item.liquidity)}</td>
               <td className="number">{compact(item.holderCount)}</td>
-              <td className="number signal-number">{compact(item.smartMakers?.length || 0)}</td>
-              <td className="number">{compact(item.kolMakers?.length || 0)}</td>
+              <td className="number signal-number">{currentHolderCount(item, "currentSmartHolderCount")}</td>
+              <td className="number">{currentHolderCount(item, "currentKolHolderCount")}</td>
               <td className="number">{item.evidenceFamilyCount || 0}</td>
               <td><Verification status={item.verificationStatus} /></td>
             </tr>

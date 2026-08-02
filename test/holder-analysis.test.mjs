@@ -42,3 +42,19 @@ test("Top100 分析识别 Dev 向仍在榜钱包转移筹码", () => {
 
   assert.equal(analyzeHolders(payload).devSockPuppet, true);
 });
+
+test("当前 KOL 名单排除已经清仓的钱包", () => {
+  const payload = { list: [holder("normal", 0.05)] };
+  const kolPayload = {
+    list: [
+      holder("holding-kol", 0.012, { balance: 100, tags: ["kol"], name: "Alpha", buy_tx_count_cur: 2, sell_tx_count_cur: 1 }),
+      holder("exited-kol", 0, { balance: 0, tags: ["kol"], name: "Exited", buy_tx_count_cur: 1, sell_tx_count_cur: 1 })
+    ]
+  };
+
+  const result = analyzeHolders(payload, { kolPayload });
+  assert.equal(result.currentKolHolderCount, 1);
+  assert.equal(result.currentKolHolderRate, 0.012);
+  assert.equal(result.currentKolHolders[0].name, "Alpha");
+  assert.equal(result.currentKolCoverage, "all-tagged");
+});

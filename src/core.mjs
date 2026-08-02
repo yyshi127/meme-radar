@@ -222,7 +222,7 @@ export function scoreCandidateLegacy(candidate, options = {}) {
   else if (candidate.stages.has("new-creation")) { score += 4; reasons.push("新创建代币"); }
 
   const smartHolders = candidate.smartHolderCount || 0;
-  if (smartHolders > 0) { score += Math.min(12, smartHolders * 3); reasons.push(`${smartHolders} 个聪明钱持仓`); }
+  if (smartHolders > 0) { score += Math.min(12, smartHolders * 3); reasons.push(`${smartHolders} 个 GMGN 聪明钱账户信号`); }
   const kolHolders = candidate.kolHolderCount || 0;
   if (kolHolders > 0) score += Math.min(6, kolHolders * 2);
 
@@ -331,7 +331,7 @@ export function scoreCandidate(candidate, options = {}) {
   const smartSignalPoints = candidate.signalTypes.has(12) ? 8 : 0;
   score += Math.max(smartActivityPoints, smartHolderPoints, smartSignalPoints);
   if (smartWallets > 0) reasons.push(`${smartWallets} 个聪明钱钱包在窗口内同向买入`);
-  else if (smartHolders > 0) reasons.push(`${smartHolders} 个聪明钱持仓`);
+  else if (smartHolders > 0) reasons.push(`${smartHolders} 个 GMGN 聪明钱账户信号`);
   else if (candidate.signalTypes.has(12)) reasons.push("GMGN 聪明钱信号触发");
 
   const kolActivityPoints = kolWallets >= 3 ? 8 : kolWallets > 0 ? 3 + kolWallets : 0;
@@ -339,7 +339,7 @@ export function scoreCandidate(candidate, options = {}) {
   const kolSignalPoints = candidate.signalTypes.has(20) ? 4 : 0;
   score += Math.max(kolActivityPoints, kolHolderPoints, kolSignalPoints);
   if (kolWallets > 0) reasons.push(`${kolWallets} 个 KOL 钱包买入`);
-  else if (kolHolders > 0) reasons.push(`${kolHolders} 个 KOL 持仓`);
+  else if (kolHolders > 0) reasons.push(`${kolHolders} 个 GMGN KOL 账户信号`);
   else if (candidate.signalTypes.has(20)) reasons.push("GMGN KOL 信号触发");
 
   const marketPoints = Math.max(

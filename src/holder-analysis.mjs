@@ -15,6 +15,39 @@ function sumRate(holders) {
   return holders.reduce((total, holder) => total + rate(holder), 0);
 }
 
+function holderList(payload) {
+  if (Array.isArray(payload)) return payload;
+  return Array.isArray(payload?.list) ? payload.list : null;
+}
+
+function walletText(value) {
+  if (typeof value !== "string") return null;
+  const cleaned = value.replace(/[\u0000-\u001F\u007F]/g, " ").replace(/\s+/g, " ").trim();
+  return cleaned ? cleaned.slice(0, 80) : null;
+}
+
+function currentTaggedHolders(payload, fallback, tagNames) {
+  const queried = holderList(payload);
+  const source = queried ?? fallback.filter((holder) => tagNames.some((tag) => hasTag(holder, tag)));
+  const unique = new Map();
+  for (const holder of source) {
+    const address = String(holder?.address || "");
+    if (!address || Number(holder?.addr_type || 0) !== 0 || Number(holder?.balance || 0) <= 0 || rate(holder) <= 0) continue;
+    unique.set(address.toLowerCase(), {
+      address,
+      name: walletText(holder.twitter_name) || walletText(holder.name),
+      twitterUsername: walletText(holder.twitter_username),
+      amountPercentage: rate(holder),
+      usdValue: Number(holder.usd_value || 0),
+      buyTxCount: Number(holder.buy_tx_count_cur || 0),
+      sellTxCount: Number(holder.sell_tx_count_cur || 0),
+      sellAmountPercentage: Number(holder.sell_amount_percentage || 0),
+      lastActiveTimestamp: Number(holder.last_active_timestamp || 0)
+    });
+  }
+  return [...unique.values()].sort((a, b) => b.amountPercentage - a.amountPercentage);
+}
+
 function looksLikeExchangeFunding(transfer) {
   const name = String(transfer?.name || "").toLowerCase();
   return /binance|okx|bybit|coinbase|kraken|kucoin|gate|mexc|bitget|hot wallet|exchange/.test(name);
@@ -37,6 +70,10 @@ export function analyzeHolders(payload, options = {}) {
   const fresh = normal.filter((holder) => hasTag(holder, "fresh_wallet"));
   const airdrop = normal.filter((holder) => Number(holder?.buy_tx_count_cur || 0) === 0 && rate(holder) > 0);
   const devs = normal.filter((holder) => hasTag(holder, "creator") || hasTag(holder, "dev_team"));
+  const smartList = holderList(options.smartPayload);
+  const kolList = holderList(options.kolPayload);
+  const currentSmartHolders = currentTaggedHolders(options.smartPayload, normal, ["smart_degen", "pump_smart"]);
+  const currentKolHolders = currentTaggedHolders(options.kolPayload, normal, ["renowned", "kol"]);
 
   const riskAddresses = new Set([...bundlers, ...rats, ...snipers, ...wash].map((holder) => holder.address));
   const riskWallets = normal.filter((holder) => riskAddresses.has(holder.address));
@@ -90,6 +127,7 @@ export function analyzeHolders(payload, options = {}) {
   const badRate = sumRate(normal.filter((holder) => badAddresses.has(holder.address)));
 
   return {
+    analysisVersion: 2,
     status: "verified",
     checkedAt: new Date().toISOString(),
     sampleSize: holders.length,
@@ -113,6 +151,14 @@ export function analyzeHolders(payload, options = {}) {
     devHoldingRate: sumRate(devs),
     devWalletCount: devs.length,
     devSockPuppet,
+    currentSmartHolderCount: currentSmartHolders.length,
+    currentSmartHolderRate: currentSmartHolders.reduce((total, holder) => total + holder.amountPercentage, 0),
+    currentSmartHolders,
+    currentSmartCoverage: smartList === null ? "top100-only" : "all-tagged",
+    currentKolHolderCount: currentKolHolders.length,
+    currentKolHolderRate: currentKolHolders.reduce((total, holder) => total + holder.amountPercentage, 0),
+    currentKolHolders,
+    currentKolCoverage: kolList === null ? "top100-only" : "all-tagged",
     burnRate: sumRate(burn),
     dexRate: sumRate(dex),
     healthyChipRate: normalRate > 0 ? Math.max(0, normalRate - badRate) / normalRate : 0

@@ -58,9 +58,14 @@ export async function enrichDeepCandidates(candidates, initialScores, options) {
   const byKey = new Map(candidates.map((candidate) => [candidate.key, candidate]));
   const selectedKeys = [];
   for (const key of watchedKeys) if (byKey.has(key)) selectedKeys.push(key);
-  for (const scored of [...initialScores].sort((a, b) => b.score - a.score)) {
+  const ranked = [...initialScores].sort((a, b) => b.score - a.score);
+  for (const scored of ranked.filter((item) => ["ALERT", "WATCH"].includes(item.priority))) {
     if (selectedKeys.length >= limit) break;
-    if (!["ALERT", "WATCH"].includes(scored.priority) && scored.score < 50) continue;
+    if (!selectedKeys.includes(scored.key)) selectedKeys.push(scored.key);
+  }
+  for (const scored of ranked) {
+    if (selectedKeys.length >= limit) break;
+    if (scored.score < 50) continue;
     if (!selectedKeys.includes(scored.key)) selectedKeys.push(scored.key);
   }
 
@@ -69,7 +74,7 @@ export async function enrichDeepCandidates(candidates, initialScores, options) {
   await mapLimit(selectedKeys.slice(0, limit), concurrency, async (key) => {
     const candidate = byKey.get(key);
     const cached = store.getHolderCache(key, cacheSeconds);
-    if (cached?.status === "verified" && cached.payload) {
+    if (cached?.status === "verified" && cached.payload?.holderAnalysis?.analysisVersion === 2) {
       applyPayload(candidate, cached.payload);
       return;
     }
@@ -86,7 +91,19 @@ export async function enrichDeepCandidates(candidates, initialScores, options) {
         gmgnWithRetry(gmgn, ["token", "security", "--chain", candidate.chain, "--address", candidate.address, "--raw"])
       ]);
       if (holdersResult.status !== "fulfilled") throw holdersResult.reason;
-      const holderAnalysis = analyzeHolders(holdersResult.value.data);
+      let smartPayload;
+      let kolPayload;
+      try {
+        smartPayload = (await gmgnWithRetry(gmgn, ["token", "holders", "--chain", candidate.chain, "--address", candidate.address, "--tag", "smart_degen", "--limit", "100", "--raw"])).data;
+      } catch {
+        notices.push(`${candidate.chain}/${candidate.symbol}: 当前聪明钱名单仅覆盖 Top100`);
+      }
+      try {
+        kolPayload = (await gmgnWithRetry(gmgn, ["token", "holders", "--chain", candidate.chain, "--address", candidate.address, "--tag", "renowned", "--limit", "100", "--raw"])).data;
+      } catch {
+        notices.push(`${candidate.chain}/${candidate.symbol}: 当前 KOL 名单仅覆盖 Top100`);
+      }
+      const holderAnalysis = analyzeHolders(holdersResult.value.data, { smartPayload, kolPayload });
       const security = securityResult.status === "fulfilled" ? securityResult.value.data : null;
       const payload = { holderAnalysis, security };
       applyPayload(candidate, payload);

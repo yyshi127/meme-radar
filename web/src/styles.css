@@ -304,6 +304,14 @@ td { padding: 0 10px; color: #bac4cf; font-size: 12px; overflow: hidden; text-ov
 .confidence-grid > div, .chip-grid > div { min-width: 0; display: grid; gap: 5px; padding: 10px; border: 1px solid var(--border-soft); border-radius: 6px; background: #0f141a; }
 .confidence-grid span, .chip-grid span { color: var(--muted); font-size: 9px; }
 .confidence-grid strong, .chip-grid strong { color: #dce3ea; font-size: 12px; font-variant-numeric: tabular-nums; }
+.holder-count { padding: 4px 7px; border: 1px solid #395a50; border-radius: 5px; background: #12231e; color: #7ee0bd; font-size: 9px; font-weight: 700; }
+.holder-list { display: grid; gap: 7px; }
+.holder-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 10px; border: 1px solid var(--border-soft); border-radius: 6px; background: #0f141a; }
+.holder-row > div { min-width: 0; display: grid; gap: 4px; }
+.holder-row > div:last-child { flex: 0 0 auto; text-align: right; }
+.holder-row strong { overflow: hidden; color: #dce3ea; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.holder-row span { color: var(--muted); font-size: 8px; }
+.holder-note { margin: 9px 0 0; color: #737f8c; font-size: 8px; line-height: 1.55; }
 .confidence-grid small { overflow: hidden; color: var(--subtle); font-size: 8px; line-height: 1.45; }
 .calibration-note { margin: 9px 0 0; color: #737f8c; font-size: 8px; line-height: 1.55; }
 .evidence-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
