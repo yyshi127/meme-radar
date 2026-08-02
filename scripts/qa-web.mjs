@@ -22,7 +22,11 @@ async function desktopQa() {
     body: "<!doctype html><title>GMGN token</title>"
   }));
   const pageErrors = [];
+  let scanRequests = 0;
   page.on("pageerror", (error) => pageErrors.push(error.message));
+  page.on("request", (request) => {
+    if (request.method() === "POST" && new URL(request.url()).pathname === "/api/scan") scanRequests += 1;
+  });
   await page.goto(`${url}/discovery`, { waitUntil: "networkidle" });
   if (await page.locator("tbody tr").count() === 0) await page.getByRole("button", { name: "全部", exact: true }).click();
   await page.locator("tbody tr").first().waitFor({ timeout: 15_000 });
@@ -31,6 +35,7 @@ async function desktopQa() {
   assert.equal((await page.locator("h1").textContent()).trim(), "猎星榜");
   assert.equal(await page.locator('.page-nav a[aria-current="page"]').textContent().then((text) => text.trim().slice(0, 3)), "猎星榜");
   assert.ok(await page.getByRole("columnheader", { name: "持币地址" }).isVisible());
+  assert.ok(await page.getByRole("columnheader", { name: "创建走势" }).isVisible());
   const initialRows = await page.locator("tbody tr").count();
   assert.ok(initialRows > 0, "重点列表应至少包含一个候选");
 
@@ -95,6 +100,12 @@ async function desktopQa() {
   assert.ok(await page.locator("tbody tr").count() >= 1, "关键词筛选应保留匹配行");
   await search.fill("");
   await chainSelect.selectOption("all");
+  const createdSelect = page.locator(".select-control-created select");
+  await createdSelect.selectOption("604800");
+  await createdSelect.selectOption("all");
+  assert.equal(scanRequests, 0, "切换筛选不应触发全量扫描");
+  assert.match(await page.locator("tbody tr").first().locator(".market-cap").getAttribute("class"), /market-cap-(micro|small|medium|large|unknown)/);
+  assert.ok(await page.locator("tbody tr").first().locator(".lifetime-trend").isVisible());
 
   const copyButton = page.getByRole("button", { name: "复制合约地址" });
   await copyButton.click();
@@ -127,6 +138,8 @@ async function mobileQa() {
   assert.equal((await page.locator("h1").textContent()).trim(), "验金榜");
   assert.ok(await page.getByRole("link", { name: /猎星榜/ }).isVisible());
   assert.ok(await page.getByRole("button", { name: /加入收藏|取消收藏/ }).isVisible());
+  assert.ok(await page.locator(".mobile-token-card").first().locator(".lifetime-trend").isVisible());
+  assert.ok(await page.locator(".mobile-token-card").first().locator(".market-cap").isVisible());
   await page.screenshot({ path: path.join(root, "output", "web-dashboard-mobile.png"), fullPage: true });
   await context.close();
 }

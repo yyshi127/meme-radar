@@ -36,6 +36,15 @@ export function createRadarStore(file = path.join(root, "data", "radar.sqlite"))
       payload_json TEXT,
       error TEXT
     );
+    CREATE TABLE IF NOT EXISTS kline_cache (
+      key TEXT PRIMARY KEY,
+      checked_at INTEGER NOT NULL,
+      resolution TEXT NOT NULL,
+      from_ts INTEGER NOT NULL,
+      to_ts INTEGER NOT NULL,
+      points_json TEXT NOT NULL,
+      error TEXT
+    );
     CREATE TABLE IF NOT EXISTS tracked_tokens (
       key TEXT PRIMARY KEY,
       chain TEXT NOT NULL,
@@ -94,6 +103,14 @@ export function createRadarStore(file = path.join(root, "data", "radar.sqlite"))
       VALUES (?, ?, ?, ?, ?)
       ON CONFLICT(key) DO UPDATE SET checked_at=excluded.checked_at, status=excluded.status,
         payload_json=excluded.payload_json, error=excluded.error
+    `),
+    getKlineCache: db.prepare("SELECT * FROM kline_cache WHERE key=?"),
+    putKlineCache: db.prepare(`
+      INSERT INTO kline_cache(key, checked_at, resolution, from_ts, to_ts, points_json, error)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(key) DO UPDATE SET checked_at=excluded.checked_at, resolution=excluded.resolution,
+        from_ts=excluded.from_ts, to_ts=excluded.to_ts, points_json=excluded.points_json,
+        error=excluded.error
     `),
     putTracked: db.prepare(`
       INSERT INTO tracked_tokens(key, chain, address, first_seen, last_seen, initial_price,
@@ -176,6 +193,31 @@ export function createRadarStore(file = path.join(root, "data", "radar.sqlite"))
 
   function putHolderCache(key, status, payload = null, error = null) {
     statements.putHolderCache.run(key, Math.floor(Date.now() / 1000), status, payload ? JSON.stringify(payload) : null, error);
+  }
+
+  function getKlineCache(key) {
+    const row = statements.getKlineCache.get(key);
+    if (!row) return null;
+    return {
+      checkedAt: Number(row.checked_at),
+      resolution: row.resolution,
+      fromTs: Number(row.from_ts),
+      toTs: Number(row.to_ts),
+      points: parseJson(row.points_json, []),
+      error: row.error || null
+    };
+  }
+
+  function putKlineCache(key, resolution, fromTs, toTs, points, error = null, checkedAt = Math.floor(Date.now() / 1000)) {
+    statements.putKlineCache.run(
+      key,
+      checkedAt,
+      resolution,
+      fromTs,
+      toTs,
+      JSON.stringify(points),
+      error
+    );
   }
 
   function recordCandidates(candidates, now = Math.floor(Date.now() / 1000)) {
@@ -330,6 +372,8 @@ export function createRadarStore(file = path.join(root, "data", "radar.sqlite"))
     syncWatchSnapshots,
     getHolderCache,
     putHolderCache,
+    getKlineCache,
+    putKlineCache,
     recordCandidates,
     recordExternalObservation,
     dueTrackedTokens,

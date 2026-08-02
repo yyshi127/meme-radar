@@ -428,11 +428,11 @@ a:focus-visible,
 }
 
 table {
-  min-width: 920px;
+  min-width: 1040px;
 }
 
 table.watch-hit-table {
-  min-width: 980px;
+  min-width: 1100px;
 }
 
 thead {
@@ -451,9 +451,10 @@ th {
 
 th:nth-child(1) { width: 78px; }
 th:nth-child(2) { width: 178px; }
-th:nth-child(3) { width: 60px; }
-th:nth-child(4) { width: 68px; }
-th:nth-child(n+5) { width: 78px; }
+th:nth-child(3) { width: 132px; }
+th:nth-child(4) { width: 60px; }
+th:nth-child(5) { width: 68px; }
+th:nth-child(n+6) { width: 78px; }
 th:last-child { width: 68px; }
 
 tbody tr {
@@ -566,6 +567,113 @@ td {
 .token-cell > .gmgn-token-link > span:last-child {
   color: #72868b;
   font-size: 9px;
+}
+
+.trend-cell {
+  min-width: 132px;
+}
+
+.lifetime-trend {
+  width: 118px;
+  display: grid;
+  gap: 3px;
+  color: var(--brand);
+}
+
+.trend-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.trend-caption span,
+.trend-empty span {
+  color: var(--subtle);
+  font-size: 7px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.trend-caption strong,
+.trend-empty strong {
+  font-size: 9px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.lifetime-trend svg {
+  width: 100%;
+  height: 34px;
+  overflow: visible;
+}
+
+.lifetime-trend path {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.lifetime-trend.trend-up {
+  color: #07866e;
+}
+
+.lifetime-trend.trend-down {
+  color: #d94c42;
+}
+
+.lifetime-trend.trend-empty {
+  min-height: 46px;
+  align-content: center;
+  gap: 5px;
+  color: #84969a;
+}
+
+.market-cap {
+  min-height: 25px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.market-cap-micro {
+  color: #0876a8;
+  border-color: #9ed7ec;
+  background: #e8f7fd;
+}
+
+.market-cap-small {
+  color: #06745f;
+  border-color: #9ed8ca;
+  background: #e8f8f3;
+}
+
+.market-cap-medium {
+  color: #aa6200;
+  border-color: #eac589;
+  background: #fff6df;
+}
+
+.market-cap-large {
+  color: #7440b7;
+  border-color: #cbb5e9;
+  background: #f4edff;
+}
+
+.market-cap-unknown {
+  color: #718489;
+  border-color: #d5e0e1;
+  background: #f4f7f7;
 }
 
 .token-meta {
@@ -1491,6 +1599,10 @@ td {
     justify-content: space-between;
   }
 
+  .select-control-created {
+    grid-column: 1 / -1;
+  }
+
   .search-control {
     grid-column: 1 / -1;
     order: initial;
@@ -1660,6 +1772,42 @@ td {
     font-size: 8px;
   }
 
+  .mobile-token-list .lifetime-trend {
+    width: 100%;
+    grid-template-columns: minmax(74px, auto) 1fr;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    background: #fbfdfd;
+  }
+
+  .mobile-token-list .trend-caption {
+    display: grid;
+    justify-content: start;
+    gap: 4px;
+  }
+
+  .mobile-token-list .trend-caption span,
+  .mobile-token-list .trend-empty span {
+    font-size: 8px;
+  }
+
+  .mobile-token-list .trend-caption strong,
+  .mobile-token-list .trend-empty strong {
+    font-size: 12px;
+  }
+
+  .mobile-token-list .lifetime-trend svg {
+    height: 40px;
+  }
+
+  .mobile-token-list .lifetime-trend.trend-empty {
+    min-height: 58px;
+    grid-template-columns: 1fr;
+  }
+
   .mobile-token-metrics {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1696,6 +1844,13 @@ td {
     font-size: 12px;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .mobile-token-metrics .market-cap {
+    width: fit-content;
+    min-height: 24px;
+    padding-inline: 7px;
+    font-size: 11px;
   }
 
   .mobile-token-metrics .hit-metric strong {

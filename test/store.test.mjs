@@ -29,6 +29,8 @@ test("收藏在重启后保留最后快照，刷新扫描不会丢失", async ()
     assert.equal(first.listWatchlist([])[0].hitCount, 1);
     first.syncWatchSnapshots([{ ...candidate, priority: "ALERT" }], 1_800_000_900);
     assert.equal(first.listWatchlist([candidate])[0].hitCount, 2);
+    first.putKlineCache(candidate.key, "5m", 1_800_000_000, 1_800_000_900, [[1_800_000_000, 1], [1_800_000_900, 2]], null, 1_800_000_900);
+    assert.equal(first.getKlineCache(candidate.key).points.length, 2);
     first.close();
 
     const reopened = createRadarStore(file);
@@ -39,6 +41,8 @@ test("收藏在重启后保留最后快照，刷新扫描不会丢失", async ()
     assert.equal(stale.snapshot.watched, true);
     assert.equal(stale.hitCount, 2);
     assert.equal(stale.snapshot.watchHitCount, 2);
+    assert.equal(reopened.getKlineCache(candidate.key).resolution, "5m");
+    assert.deepEqual(reopened.getKlineCache(candidate.key).points.at(-1), [1_800_000_900, 2]);
     assert.equal(reopened.removeWatch(candidate.chain, candidate.address), true);
     assert.deepEqual(reopened.listWatchlist([]), []);
     reopened.close();

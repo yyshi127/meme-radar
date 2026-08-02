@@ -38,6 +38,14 @@ export function creationAge(value, now = Date.now()) {
   return `创建 ${Math.floor(elapsedSeconds / (365 * 86400))}年`;
 }
 
+export function isCreatedWithin(value, maxAgeSeconds, now = Date.now()) {
+  const timestamp = Number(value);
+  const limit = Number(maxAgeSeconds);
+  if (!Number.isFinite(timestamp) || timestamp <= 0 || !Number.isFinite(limit) || limit <= 0) return false;
+  const elapsedSeconds = Math.max(0, now / 1000 - timestamp);
+  return elapsedSeconds <= limit;
+}
+
 export function shortAddress(address) {
   if (!address) return "—";
   return `${address.slice(0, 6)}…${address.slice(-5)}`;

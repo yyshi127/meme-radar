@@ -130,5 +130,6 @@ export async function enrichDeepCandidates(candidates, initialScores, options) {
     }
   });
 
-  return { selected: selectedKeys.slice(0, limit).length };
+  const limitedKeys = selectedKeys.slice(0, limit);
+  return { selected: limitedKeys.length, selectedKeys: limitedKeys };
 }

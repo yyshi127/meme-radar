@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkConfig, gmgn } from "./gmgn.mjs";
 import { enrichDeepCandidates } from "./deep-analysis.mjs";
+import { enrichLifetimeTrends } from "./lifetime-trend.mjs";
 import { radarStore } from "./store.mjs";
 import {
   cleanText,
@@ -184,6 +185,14 @@ export async function scan(config, options = {}) {
     watchedKeys,
     notices
   });
+  const trendAnalysis = await enrichLifetimeTrends(sourceCandidates, deepAnalysis.selectedKeys, {
+    gmgn,
+    store: radarStore,
+    now,
+    concurrency: config.klineConcurrency ?? 3,
+    cacheSeconds: config.klineCacheSeconds ?? 240,
+    notices
+  });
 
   const oldState = await jsonFile(statePath, { candidates: {}, discoveryCandidates: {} });
   const nextState = { candidates: {}, discoveryCandidates: {} };
@@ -251,7 +260,7 @@ export async function scan(config, options = {}) {
     alerts: decoratedAlerts,
     errors,
     notices,
-    deepAnalysis: { ...deepAnalysis, outcomeSamples },
+    deepAnalysis: { selected: deepAnalysis.selected, lifetimeTrends: trendAnalysis, outcomeSamples },
     calibration: calibration.report,
     strategies: {
       discovery: { name: "猎星榜", version: "early-v3", description: "原版评分加持币地址 >300、市值 $10k–$2M，并对已检测 Rug 风险一票否决；安全数据未完成时仅观察" },

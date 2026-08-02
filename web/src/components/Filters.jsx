@@ -45,6 +45,17 @@ export default function Filters({ filters, onChange, resultCount }) {
           <option value="WATCHING">观察</option>
         </select>
       </label>
+      <label className="select-control select-control-created">
+        <span>创建</span>
+        <select value={filters.createdWithin} onChange={(event) => update("createdWithin", event.target.value)}>
+          <option value="all">全部时间</option>
+          <option value="3600">1小时内</option>
+          <option value="14400">4小时内</option>
+          <option value="43200">12小时内</option>
+          <option value="86400">24小时内</option>
+          <option value="604800">7天内</option>
+        </select>
+      </label>
       <label className="search-control">
         <SearchIcon />
         <input

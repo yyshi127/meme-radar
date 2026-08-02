@@ -51,6 +51,79 @@ function CreationAge({ timestamp }) {
   );
 }
 
+function marketCapBand(value) {
+  if (!Number.isFinite(value)) return { key: "unknown", label: "市值未知" };
+  if (value < 50_000) return { key: "micro", label: "市值低于 $50K" };
+  if (value < 200_000) return { key: "small", label: "市值 $50K–$200K" };
+  if (value < 1_000_000) return { key: "medium", label: "市值 $200K–$1M" };
+  return { key: "large", label: "市值高于 $1M" };
+}
+
+function MarketCap({ value }) {
+  const band = marketCapBand(value);
+  return <strong className={`market-cap market-cap-${band.key}`} title={band.label}>{money(value)}</strong>;
+}
+
+function sparklinePath(points, width = 118, height = 34) {
+  const values = (Array.isArray(points) ? points : [])
+    .map((point) => [Number(point?.[0]), Number(point?.[1])])
+    .filter(([time, price]) => Number.isFinite(time) && Number.isFinite(price) && price > 0);
+  if (values.length < 2) return "";
+  const times = values.map(([time]) => time);
+  const prices = values.map(([, price]) => price);
+  const minTime = Math.min(...times);
+  const maxTime = Math.max(...times);
+  const minPrice = Math.min(...prices);
+  const maxPrice = Math.max(...prices);
+  const timeRange = maxTime - minTime;
+  const priceRange = maxPrice - minPrice;
+  const padding = 2;
+  return values.map(([time, price], index) => {
+    const xRatio = timeRange ? (time - minTime) / timeRange : index / (values.length - 1);
+    const yRatio = priceRange ? (price - minPrice) / priceRange : 0.5;
+    const x = padding + xRatio * (width - padding * 2);
+    const y = height - padding - yRatio * (height - padding * 2);
+    return `${index ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+}
+
+function trendPercent(value) {
+  if (!Number.isFinite(value)) return "—";
+  const formatted = new Intl.NumberFormat("en-US", {
+    notation: Math.abs(value) >= 1000 ? "compact" : "standard",
+    maximumFractionDigits: 1
+  }).format(Math.abs(value));
+  return `${value >= 0 ? "+" : "−"}${formatted}%`;
+}
+
+function LifetimeTrend({ item }) {
+  const trend = item.lifetimeTrend;
+  const path = trend?.status === "ready" ? sparklinePath(trend.points) : "";
+  if (!path) {
+    return (
+      <div className="lifetime-trend trend-empty" title="GMGN 暂未返回足够的创建以来 K 线">
+        <span>创建→本轮</span>
+        <strong>暂无K线</strong>
+      </div>
+    );
+  }
+  const tone = trend.changePct >= 0 ? "up" : "down";
+  return (
+    <div
+      className={`lifetime-trend trend-${tone}`}
+      title={`创建于 ${localTime(trend.from, true)}；K线更新至 ${localTime(trend.updatedAt, true)}${trend.stale ? "（缓存）" : ""}`}
+    >
+      <div className="trend-caption">
+        <span>创建→本轮</span>
+        <strong>{trendPercent(trend.changePct)}</strong>
+      </div>
+      <svg viewBox="0 0 118 34" preserveAspectRatio="none" role="img" aria-label={`创建以来涨跌 ${trendPercent(trend.changePct)}`}>
+        <path d={path} />
+      </svg>
+    </div>
+  );
+}
+
 function scoreTone(score) {
   if (score >= 70) return "high";
   if (score >= 55) return "medium";
@@ -88,6 +161,7 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
           <tr>
             <th>优先级</th>
             <th>代币</th>
+            <th>创建走势</th>
             <th className="number">分数</th>
             <th className="number">安全分</th>
             {showWatchHits && <th className="number" title="收藏后进入 ALERT 或 WATCH 的累计轮数">累计命中</th>}
@@ -146,6 +220,7 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
                   </span>
                 </div>
               </td>
+              <td className="trend-cell"><LifetimeTrend item={item} /></td>
               <td className="number score-cell">
                 <strong className={`score-badge score-${scoreTone(item.score)}`}>{item.score}</strong>
                 <span style={{ "--score": item.score }} />
@@ -160,7 +235,7 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
                   <span className={`metric-tag hit-tag hit-${hitTone(item.watchHitCount || 0)}`}>{item.watchHitCount || 0} 轮</span>
                 </td>
               )}
-              <td className="number">{money(item.marketCap)}</td>
+              <td className="number"><MarketCap value={item.marketCap} /></td>
               <td className="number">{money(item.liquidity)}</td>
               <td className="number">{compact(item.holderCount)}</td>
               <td className="number"><SignalCount item={item} field="currentSmartHolderCount" kind="smart" /></td>
@@ -219,8 +294,9 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
               </a>
             </div>
             <p className="mobile-narrative"><strong>叙事</strong>{narrativeFor(item).summary}</p>
+            <LifetimeTrend item={item} />
             <div className="mobile-token-metrics">
-              <div><span>市值</span><strong>{money(item.marketCap)}</strong></div>
+              <div><span>市值</span><MarketCap value={item.marketCap} /></div>
               <div className={`safety-${item.safetyStatus || "pending"}`}>
                 <span>安全分</span>
                 <strong className="mobile-metric-tag">{safetyScore(item) ?? "—"}{Number.isFinite(safetyScore(item)) ? "/100" : ""}</strong>

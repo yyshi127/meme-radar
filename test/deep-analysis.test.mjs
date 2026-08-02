@@ -32,6 +32,7 @@ test("Top100 持仓接口瞬时超时会自动重试", async () => {
   });
 
   assert.equal(result.selected, 1);
+  assert.deepEqual(result.selectedKeys, [candidate.key]);
   assert.equal(topHolderCalls, 2);
   assert.equal(candidate.verificationStatus, "verified");
   assert.equal(candidate.narrativeDescription, "A retry community narrative.");

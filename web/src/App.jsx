@@ -4,8 +4,9 @@ import Header from "./components/Header.jsx";
 import Inspector from "./components/Inspector.jsx";
 import Summary from "./components/Summary.jsx";
 import TokenTable from "./components/TokenTable.jsx";
+import { isCreatedWithin } from "./lib/format.js";
 
-const defaultFilters = { priority: "focus", chain: "all", phase: "all", query: "" };
+const defaultFilters = { priority: "focus", chain: "all", phase: "all", createdWithin: "all", query: "" };
 const pages = {
   discovery: {
     key: "discovery",
@@ -100,15 +101,17 @@ export default function App() {
   const filtered = useMemo(() => {
     const query = filters.query.trim().toLowerCase();
     const source = filters.priority === "saved" ? watchedCandidates : candidates;
+    const scanTime = report?.generatedAt ? Date.parse(report.generatedAt) : Date.now();
     return source.filter((item) => {
       if (filters.priority === "focus" && !["ALERT", "WATCH"].includes(item.priority)) return false;
       if (!["focus", "all", "saved"].includes(filters.priority) && item.priority !== filters.priority) return false;
       if (filters.chain !== "all" && item.chain !== filters.chain) return false;
       if (filters.phase !== "all" && item.phase !== filters.phase) return false;
+      if (filters.createdWithin !== "all" && !isCreatedWithin(item.creationTimestamp, filters.createdWithin, scanTime)) return false;
       if (query && !`${item.symbol} ${item.name} ${item.address}`.toLowerCase().includes(query)) return false;
       return true;
     });
-  }, [candidates, filters, watchedCandidates]);
+  }, [candidates, filters, report?.generatedAt, watchedCandidates]);
 
   useEffect(() => {
     const stillVisible = filtered.some((item) => item.key === selectedKey);
