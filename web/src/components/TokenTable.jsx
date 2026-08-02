@@ -1,4 +1,4 @@
-import { compact, money, phaseLabels, shortAddress } from "../lib/format.js";
+import { compact, creationAge, localTime, money, phaseLabels, shortAddress } from "../lib/format.js";
 import { gmgnTokenUrl } from "../lib/gmgn.js";
 import { ExternalLinkIcon, StarIcon } from "./Icons.jsx";
 
@@ -37,6 +37,18 @@ function narrativeFor(item) {
     summary: "等待下一轮扫描获取项目简介与叙事线索。",
     sourceLabel: "待扫描"
   };
+}
+
+function CreationAge({ timestamp }) {
+  const available = Number.isFinite(timestamp) && timestamp > 0;
+  return (
+    <span
+      className={`age-badge ${available ? "" : "age-unknown"}`}
+      title={available ? `创建于 ${localTime(timestamp, true)}` : "GMGN 未返回代币创建时间"}
+    >
+      {creationAge(timestamp)}
+    </span>
+  );
 }
 
 function scoreTone(score) {
@@ -124,6 +136,7 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
                   <span className="token-meta">
                     <span className={`chain chain-${item.chain}`}>{item.chain.toUpperCase()}</span>
                     <span className={`phase phase-${item.phase.toLowerCase()}`}>{phaseLabels[item.phase] || item.phase}</span>
+                    <CreationAge timestamp={item.creationTimestamp} />
                     <span
                       className={`narrative-badge narrative-${narrativeFor(item).categoryKey}`}
                       title={`${narrativeFor(item).sourceLabel}：${narrativeFor(item).summary}`}
@@ -184,6 +197,7 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
             <div className="mobile-token-tags">
               <span className={`chain chain-${item.chain}`}>{item.chain.toUpperCase()}</span>
               <span className={`phase phase-${item.phase.toLowerCase()}`}>{phaseLabels[item.phase] || item.phase}</span>
+              <CreationAge timestamp={item.creationTimestamp} />
               <Verification status={item.verificationStatus} />
               {hasRenownedDeveloper(item) && (
                 <span className="renowned-dev-badge" title="GMGN renowned / KOL 开发者钱包标签">知名开发者</span>

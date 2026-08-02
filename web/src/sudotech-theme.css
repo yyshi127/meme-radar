@@ -510,7 +510,8 @@ td {
 .metric-tag,
 .signal-tag,
 .renowned-dev-badge,
-.narrative-badge {
+.narrative-badge,
+.age-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -614,6 +615,23 @@ td {
   color: #657a7f !important;
   font-size: 7px !important;
   text-overflow: ellipsis;
+}
+
+.age-badge {
+  flex: 0 0 auto;
+  min-height: 19px;
+  padding-inline: 6px;
+  border-color: #b8dae2;
+  background: var(--info-soft);
+  color: #286d80;
+  font-size: 7px;
+  letter-spacing: 0.01em;
+}
+
+.age-badge.age-unknown {
+  border-color: #d7e1e2;
+  background: #f4f7f7;
+  color: #829397;
 }
 
 .narrative-space {

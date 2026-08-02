@@ -26,6 +26,18 @@ export function localTime(value, withSeconds = false) {
   }).format(date);
 }
 
+export function creationAge(value, now = Date.now()) {
+  const timestamp = Number(value);
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return "创建时间未知";
+  const elapsedSeconds = Math.max(0, Math.floor(now / 1000 - timestamp));
+  if (elapsedSeconds < 60) return "刚刚创建";
+  if (elapsedSeconds < 3600) return `创建 ${Math.floor(elapsedSeconds / 60)}分钟`;
+  if (elapsedSeconds < 86400) return `创建 ${Math.floor(elapsedSeconds / 3600)}小时`;
+  if (elapsedSeconds < 30 * 86400) return `创建 ${Math.floor(elapsedSeconds / 86400)}天`;
+  if (elapsedSeconds < 365 * 86400) return `创建 ${Math.floor(elapsedSeconds / (30 * 86400))}个月`;
+  return `创建 ${Math.floor(elapsedSeconds / (365 * 86400))}年`;
+}
+
 export function shortAddress(address) {
   if (!address) return "—";
   return `${address.slice(0, 6)}…${address.slice(-5)}`;
