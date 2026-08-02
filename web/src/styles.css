@@ -236,6 +236,7 @@ td { padding: 0 10px; color: #bac4cf; font-size: 12px; overflow: hidden; text-ov
 .score-cell span { position: absolute; right: 10px; bottom: 7px; width: 34px; height: 2px; background: #27313c; overflow: hidden; }
 .score-cell span::after { content: ""; display: block; width: calc(var(--score) * 1%); height: 100%; background: var(--blue); }
 .token-cell { display: grid; gap: 3px; overflow: hidden; }
+.token-title-line { min-width: 0; display: flex; align-items: center; gap: 5px; }
 .gmgn-token-link { min-width: 0; display: grid; gap: 3px; color: inherit; text-decoration: none; }
 .token-symbol { display: flex; align-items: center; gap: 5px; min-width: 0; }
 .token-cell strong { color: #f2f5f8; font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
@@ -245,6 +246,8 @@ td { padding: 0 10px; color: #bac4cf; font-size: 12px; overflow: hidden; text-ov
 .token-symbol .watched-mark svg { opacity: 1; fill: currentColor; stroke: currentColor; }
 .gmgn-token-link:hover strong { color: #90bcff; }
 .gmgn-token-link:hover .token-symbol svg, .gmgn-token-link:focus-visible .token-symbol svg { opacity: 1; stroke: var(--blue); }
+.twitter-contract-search { width: 21px; height: 21px; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 6px; color: var(--muted); text-decoration: none; }
+.twitter-contract-search svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .chain { font-size: 9px; font-weight: 750; letter-spacing: 0.04em; }
 .chain-sol { color: #7edfc0; }
 .chain-bsc { color: #e9c566; }

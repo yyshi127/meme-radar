@@ -77,10 +77,13 @@ async function desktopQa() {
 
   const firstTokenLink = page.locator("tbody tr").first().locator(".gmgn-token-link");
   const firstChain = (await page.locator("tbody tr").first().locator(".chain").textContent()).trim().toLowerCase();
-  const firstAddress = await page.locator("tbody tr").first().locator(".token-cell span[title]").getAttribute("title");
+  const firstAddress = await page.locator("tbody tr").first().locator(".token-name").getAttribute("title");
   const expectedGmgnUrl = `https://gmgn.ai/${firstChain}/token/${encodeURIComponent(firstAddress)}`;
+  const expectedTwitterSearch = `https://x.com/search?q=${encodeURIComponent(firstAddress)}&src=typed_query&f=live`;
   assert.equal(await firstTokenLink.getAttribute("href"), expectedGmgnUrl);
   assert.equal(await firstTokenLink.getAttribute("target"), "_blank");
+  assert.equal(await page.locator("tbody tr").first().locator(".twitter-contract-search").getAttribute("href"), expectedTwitterSearch);
+  assert.equal(await page.locator("tbody tr").first().locator(".twitter-contract-search").getAttribute("target"), "_blank");
   assert.equal(await page.locator(".gmgn-web-action").getAttribute("href"), expectedGmgnUrl);
   const twitterAction = page.locator(".twitter-action");
   if (await twitterAction.count()) {
@@ -145,6 +148,7 @@ async function mobileQa() {
   assert.ok(await page.getByRole("button", { name: /加入收藏|取消收藏/ }).isVisible());
   assert.ok(await page.locator(".mobile-token-card").first().locator(".lifetime-trend").isVisible());
   assert.ok(await page.locator(".mobile-token-card").first().locator(".market-cap").isVisible());
+  assert.ok(await page.locator(".mobile-token-card").first().locator(".twitter-contract-search").isVisible());
   assert.match(await page.locator(".gmgn-app-action").getAttribute("href"), /^intent:\/\/gmgn\.ai\//);
   assert.match(await page.locator(".mobile-gmgn-app-link").first().getAttribute("href"), /package=com\.gmgn\.app/);
   assert.match(await page.locator(".mobile-gmgn-web-link").first().getAttribute("href"), /^https:\/\/gmgn\.ai\//);

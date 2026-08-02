@@ -581,9 +581,24 @@ td {
   font-size: 12px;
 }
 
-.token-cell > .gmgn-token-link > span:last-child {
+.token-name {
   color: #72868b;
   font-size: 9px;
+}
+
+.twitter-contract-search {
+  border-color: #cbdcde;
+  background: #f6faf9;
+  color: #536c72;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.twitter-contract-search:hover,
+.twitter-contract-search:focus-visible {
+  border-color: #172a34;
+  background: #172a34;
+  color: #fff;
+  transform: translateY(-1px);
 }
 
 .trend-cell {
@@ -1716,6 +1731,18 @@ td {
     display: grid;
     flex: 1;
     gap: 2px;
+  }
+
+  .mobile-symbol-row {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .mobile-symbol-row .twitter-contract-search {
+    width: 24px;
+    height: 24px;
   }
 
   .mobile-token-title strong {

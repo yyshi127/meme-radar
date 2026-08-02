@@ -1,6 +1,7 @@
 import { compact, creationAge, localTime, money, phaseLabels, shortAddress } from "../lib/format.js";
 import { gmgnAppIntentUrl, gmgnTokenUrl } from "../lib/gmgn.js";
-import { ExternalLinkIcon, StarIcon } from "./Icons.jsx";
+import { twitterContractSearchUrl } from "../lib/social.js";
+import { ExternalLinkIcon, SearchIcon, StarIcon } from "./Icons.jsx";
 
 function Priority({ value }) {
   return <span className={`priority priority-${value.toLowerCase()}`}>{value}</span>;
@@ -186,27 +187,40 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
               <td><Priority value={item.priority} /></td>
               <td>
                 <div className="token-cell">
-                  <a
-                    className="gmgn-token-link"
-                    href={gmgnTokenUrl(item.chain, item.address)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`在 GMGN 查看 ${item.symbol}`}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onSelect(item);
-                    }}
-                  >
-                    <span className="token-symbol">
-                      <strong>{item.symbol}</strong>
-                      {hasRenownedDeveloper(item) && (
-                        <span className="renowned-dev-badge" title="GMGN 将该开发者钱包标记为 renowned 或 KOL；不等同于官方身份认证">知名开发者</span>
-                      )}
-                      {watchedKeys.has(item.key) && <span className="watched-mark" title="已收藏"><StarIcon filled /></span>}
-                      <ExternalLinkIcon />
-                    </span>
-                    <span title={item.address}>{item.name !== "?" ? item.name : shortAddress(item.address)}</span>
-                  </a>
+                  <div className="token-title-line">
+                    <a
+                      className="gmgn-token-link"
+                      href={gmgnTokenUrl(item.chain, item.address)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`在 GMGN 查看 ${item.symbol}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onSelect(item);
+                      }}
+                    >
+                      <span className="token-symbol">
+                        <strong>{item.symbol}</strong>
+                        {hasRenownedDeveloper(item) && (
+                          <span className="renowned-dev-badge" title="GMGN 将该开发者钱包标记为 renowned 或 KOL；不等同于官方身份认证">知名开发者</span>
+                        )}
+                        {watchedKeys.has(item.key) && <span className="watched-mark" title="已收藏"><StarIcon filled /></span>}
+                        <ExternalLinkIcon />
+                      </span>
+                    </a>
+                    <a
+                      className="twitter-contract-search"
+                      href={twitterContractSearchUrl(item.address)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`在 X 搜索 ${item.symbol} 的合约地址`}
+                      title="用合约地址搜索 X / Twitter"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <SearchIcon />
+                    </a>
+                  </div>
+                  <span className="token-name" title={item.address}>{item.name !== "?" ? item.name : shortAddress(item.address)}</span>
                   <span className="token-meta">
                     <span className={`chain chain-${item.chain}`}>{item.chain.toUpperCase()}</span>
                     <span className={`phase phase-${item.phase.toLowerCase()}`}>{phaseLabels[item.phase] || item.phase}</span>
@@ -263,7 +277,20 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
             <div className="mobile-token-head">
               <Priority value={item.priority} />
               <div className="mobile-token-title">
-                <strong>{item.symbol}</strong>
+                <div className="mobile-symbol-row">
+                  <strong>{item.symbol}</strong>
+                  <a
+                    className="twitter-contract-search"
+                    href={twitterContractSearchUrl(item.address)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`在 X 搜索 ${item.symbol} 的合约地址`}
+                    title="用合约地址搜索 X / Twitter"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <SearchIcon />
+                  </a>
+                </div>
                 <span>{item.name !== "?" ? item.name : shortAddress(item.address)}</span>
               </div>
               {watchedKeys.has(item.key) && <span className="mobile-watch-mark" title="已收藏"><StarIcon filled /></span>}

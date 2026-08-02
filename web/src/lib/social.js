@@ -16,3 +16,10 @@ export function twitterProfileUrl(value) {
     return null;
   }
 }
+
+export function twitterContractSearchUrl(address) {
+  const query = String(address || "").trim();
+  if (!query) return null;
+  const params = new URLSearchParams({ q: query, src: "typed_query", f: "live" });
+  return `https://x.com/search?${params.toString()}`;
+}
