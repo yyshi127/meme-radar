@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Filters from "./components/Filters.jsx";
 import Header from "./components/Header.jsx";
 import Inspector from "./components/Inspector.jsx";
@@ -22,10 +22,28 @@ const pages = {
   }
 };
 
-async function api(path, options) {
-  const response = await fetch(path, options);
-  if (!response.ok && response.status !== 202) throw new Error(`HTTP ${response.status}`);
-  return response.json();
+async function api(path, options = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12_000);
+  try {
+    const response = await fetch(path, {
+      ...options,
+      credentials: "same-origin",
+      cache: "no-store",
+      signal: controller.signal
+    });
+    if (!response.ok && response.status !== 202) {
+      const error = new Error(`HTTP ${response.status}`);
+      error.status = response.status;
+      throw error;
+    }
+    return response.json();
+  } catch (error) {
+    if (error.name === "AbortError") throw new Error("请求超时");
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export default function App() {
@@ -39,27 +57,61 @@ export default function App() {
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [watchBusyKey, setWatchBusyKey] = useState(null);
   const [error, setError] = useState(null);
+  const refreshingRef = useRef(false);
+  const hasReportRef = useRef(false);
+  const reportFailureCountRef = useRef(0);
 
   const refresh = useCallback(async () => {
+    if (refreshingRef.current) return;
+    refreshingRef.current = true;
     try {
-      const [nextStatus, nextReport, nextWatchlist] = await Promise.all([
+      const results = await Promise.allSettled([
         api("/api/status"),
         api("/api/report"),
         api("/api/watchlist")
       ]);
-      setStatus(nextStatus);
-      if (nextReport?.candidates) setReport(nextReport);
-      if (nextWatchlist?.items) setWatchlist(nextWatchlist.items);
-      setError(null);
-    } catch (requestError) {
-      setError(`无法读取本地雷达：${requestError.message}`);
+      const [statusResult, reportResult, watchlistResult] = results;
+      if (statusResult.status === "fulfilled") setStatus(statusResult.value);
+      if (reportResult.status === "fulfilled" && reportResult.value?.candidates) {
+        setReport(reportResult.value);
+        hasReportRef.current = true;
+        reportFailureCountRef.current = 0;
+      } else if (reportResult.status === "rejected") {
+        reportFailureCountRef.current += 1;
+      }
+      if (watchlistResult.status === "fulfilled" && watchlistResult.value?.items) {
+        setWatchlist(watchlistResult.value.items);
+      }
+
+      const failures = results.filter((result) => result.status === "rejected");
+      const unauthorized = failures.some((result) => result.reason?.status === 401);
+      if (unauthorized) {
+        setError({ message: "登录状态已失效，请重新连接雷达。", reconnect: true });
+      } else if (failures.length === results.length) {
+        setError({ message: "暂时无法连接雷达，正在保留上次成功读取的数据。", reconnect: false });
+      } else if (reportResult.status === "rejected" && (!hasReportRef.current || reportFailureCountRef.current >= 3)) {
+        setError({ message: `雷达数据读取不稳定：${reportResult.reason.message}，正在显示上次数据。`, reconnect: false });
+      } else {
+        setError(null);
+      }
+    } finally {
+      refreshingRef.current = false;
     }
   }, []);
 
   useEffect(() => {
     refresh();
-    const timer = setInterval(refresh, 5000);
-    return () => clearInterval(timer);
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") refresh();
+    }, 5000);
+    function refreshWhenVisible() {
+      if (document.visibilityState === "visible") refresh();
+    }
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
   }, [refresh]);
 
   useEffect(() => {
@@ -169,11 +221,18 @@ export default function App() {
     setMobileDetailOpen(false);
   }
 
+  const errorMessage = typeof error === "string" ? error : error?.message;
+
   return (
     <main className="app-shell">
       <Header page={page} pages={pages} status={status} generatedAt={report?.generatedAt} onNavigate={navigatePage} onScan={runScan} />
       <Summary page={page} candidates={candidates} errorCount={report?.errors?.length || 0} />
-      {error && <div className="app-error" role="alert">{error}</div>}
+      {errorMessage && (
+        <div className="app-error" role="alert">
+          <span>{errorMessage}</span>
+          {error?.reconnect && <button type="button" onClick={() => window.location.reload()}>重新连接</button>}
+        </div>
+      )}
       <Filters filters={filters} onChange={setFilters} resultCount={filtered.length} />
       <div className={`workspace ${mobileDetailOpen ? "mobile-detail-visible" : ""}`}>
         <TokenTable

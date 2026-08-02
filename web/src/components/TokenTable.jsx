@@ -1,5 +1,5 @@
 import { compact, creationAge, localTime, money, phaseLabels, shortAddress } from "../lib/format.js";
-import { gmgnTokenUrl } from "../lib/gmgn.js";
+import { gmgnAppIntentUrl, gmgnTokenUrl } from "../lib/gmgn.js";
 import { ExternalLinkIcon, StarIcon } from "./Icons.jsx";
 
 function Priority({ value }) {
@@ -283,15 +283,24 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
               >
                 {narrativeFor(item).category}
               </span>
-              <a
-                href={gmgnTokenUrl(item.chain, item.address)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mobile-gmgn-link"
-                onClick={(event) => event.stopPropagation()}
-              >
-                GMGN <ExternalLinkIcon />
-              </a>
+              <span className="mobile-gmgn-actions">
+                <a
+                  href={gmgnAppIntentUrl(item.chain, item.address)}
+                  className="mobile-gmgn-link mobile-gmgn-app-link"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  GMGN App <ExternalLinkIcon />
+                </a>
+                <a
+                  href={gmgnTokenUrl(item.chain, item.address)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mobile-gmgn-link mobile-gmgn-web-link"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  网页 <ExternalLinkIcon />
+                </a>
+              </span>
             </div>
             <p className="mobile-narrative"><strong>叙事</strong>{narrativeFor(item).summary}</p>
             <LifetimeTrend item={item} />

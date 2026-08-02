@@ -81,7 +81,7 @@ async function desktopQa() {
   const expectedGmgnUrl = `https://gmgn.ai/${firstChain}/token/${encodeURIComponent(firstAddress)}`;
   assert.equal(await firstTokenLink.getAttribute("href"), expectedGmgnUrl);
   assert.equal(await firstTokenLink.getAttribute("target"), "_blank");
-  assert.equal(await page.locator(".gmgn-detail-link").getAttribute("href"), expectedGmgnUrl);
+  assert.equal(await page.locator(".gmgn-web-action").getAttribute("href"), expectedGmgnUrl);
   const popupPromise = page.waitForEvent("popup");
   await firstTokenLink.click();
   const popup = await popupPromise;
@@ -140,6 +140,9 @@ async function mobileQa() {
   assert.ok(await page.getByRole("button", { name: /加入收藏|取消收藏/ }).isVisible());
   assert.ok(await page.locator(".mobile-token-card").first().locator(".lifetime-trend").isVisible());
   assert.ok(await page.locator(".mobile-token-card").first().locator(".market-cap").isVisible());
+  assert.match(await page.locator(".gmgn-app-action").getAttribute("href"), /^intent:\/\/gmgn\.ai\//);
+  assert.match(await page.locator(".mobile-gmgn-app-link").first().getAttribute("href"), /package=com\.gmgn\.app/);
+  assert.match(await page.locator(".mobile-gmgn-web-link").first().getAttribute("href"), /^https:\/\/gmgn\.ai\//);
   await page.screenshot({ path: path.join(root, "output", "web-dashboard-mobile.png"), fullPage: true });
   await context.close();
 }

@@ -12,6 +12,8 @@ createRoot(document.getElementById("root")).render(
 
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
+    navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" })
+      .then((registration) => registration.update())
+      .catch(() => {});
   });
 }

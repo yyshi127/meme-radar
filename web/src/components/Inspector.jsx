@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CheckIcon, CopyIcon, ExternalLinkIcon, StarIcon } from "./Icons.jsx";
 import { compact, familyLabels, localTime, money, phaseLabels } from "../lib/format.js";
-import { gmgnTokenUrl } from "../lib/gmgn.js";
+import { gmgnAppIntentUrl, gmgnTokenUrl } from "../lib/gmgn.js";
 
 function List({ items, empty, tone }) {
   if (!items?.length) return <p className="list-empty">{empty}</p>;
@@ -106,6 +106,7 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
     setTimeout(() => setCopied(false), 1400);
   }
   const gmgnUrl = gmgnTokenUrl(item.chain, item.address);
+  const gmgnAppUrl = gmgnAppIntentUrl(item.chain, item.address);
   const kolAverageCost = item.holderAnalysis?.currentKolAverageCost;
   const kolCostGap = Number.isFinite(kolAverageCost) && kolAverageCost > 0 && Number.isFinite(item.price)
     ? item.price / kolAverageCost - 1
@@ -169,9 +170,14 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
         </button>
       </div>
 
-      <a className="gmgn-detail-link" href={gmgnUrl} target="_blank" rel="noopener noreferrer">
-        <ExternalLinkIcon />在 GMGN 查看详情
-      </a>
+      <div className="gmgn-link-actions">
+        <a className="gmgn-detail-link gmgn-app-action" href={gmgnAppUrl}>
+          <ExternalLinkIcon />打开 GMGN App
+        </a>
+        <a className="gmgn-detail-link gmgn-web-action" href={gmgnUrl} target="_blank" rel="noopener noreferrer">
+          <ExternalLinkIcon />打开 GMGN 网页
+        </a>
+      </div>
 
       <div className="metric-grid">
         <div className="metric-market"><span>市值</span><strong>{money(item.marketCap)}</strong></div>
