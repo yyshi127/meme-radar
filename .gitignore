@@ -1,0 +1,9 @@
+data/
+output/
+node_modules/
+web/dist/
+*.log
+.env
+*.pem
+*.key
+.config/

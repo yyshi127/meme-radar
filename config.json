@@ -1,0 +1,13 @@
+{
+  "chains": ["sol", "bsc"],
+  "watchIntervalSeconds": 120,
+  "clusterWindowMinutes": 30,
+  "alertScore": 70,
+  "watchScore": 50,
+  "top": 25,
+  "deepAnalysisLimit": 25,
+  "deepAnalysisConcurrency": 3,
+  "holderCacheSeconds": 1800,
+  "outcomeSampleLimit": 6,
+  "calibrationMinSamples": 50
+}

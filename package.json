@@ -1,0 +1,21 @@
+{
+  "name": "gmgn-meme-radar",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "scan": "node src/index.mjs scan",
+    "watch": "node src/index.mjs watch",
+    "build:web": "vite build",
+    "web": "npm run build:web && node src/server.mjs --open",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.62.1",
+    "vite": "^8.2.0"
+  }
+}
