@@ -43,18 +43,23 @@ test("Top100 分析识别 Dev 向仍在榜钱包转移筹码", () => {
   assert.equal(analyzeHolders(payload).devSockPuppet, true);
 });
 
-test("当前 KOL 名单排除已经清仓的钱包", () => {
+test("当前 KOL 名单排除已清仓钱包并按当前持仓计算加权成本", () => {
   const payload = { list: [holder("normal", 0.05)] };
   const kolPayload = {
     list: [
-      holder("holding-kol", 0.012, { balance: 100, tags: ["kol"], name: "Alpha", buy_tx_count_cur: 2, sell_tx_count_cur: 1 }),
+      holder("holding-kol-1", 0.012, { balance: 100, avg_cost: 2, tags: ["kol"], name: "Alpha", buy_tx_count_cur: 2, sell_tx_count_cur: 1 }),
+      holder("holding-kol-2", 0.02, { balance: 300, avg_cost: 4, tags: ["kol"], name: "Beta" }),
+      holder("transfer-kol", 0.01, { balance: 100, avg_cost: 0, tags: ["kol"], name: "Transfer" }),
       holder("exited-kol", 0, { balance: 0, tags: ["kol"], name: "Exited", buy_tx_count_cur: 1, sell_tx_count_cur: 1 })
     ]
   };
 
   const result = analyzeHolders(payload, { kolPayload });
-  assert.equal(result.currentKolHolderCount, 1);
-  assert.equal(result.currentKolHolderRate, 0.012);
-  assert.equal(result.currentKolHolders[0].name, "Alpha");
+  assert.equal(result.analysisVersion, 3);
+  assert.equal(result.currentKolHolderCount, 3);
+  assert.equal(result.currentKolHolderRate, 0.042);
+  assert.equal(result.currentKolAverageCost, 3.5);
+  assert.equal(result.currentKolCostCoverage, 0.8);
+  assert.equal(result.currentKolHolders.find((item) => item.name === "Alpha").averageCost, 2);
   assert.equal(result.currentKolCoverage, "all-tagged");
 });

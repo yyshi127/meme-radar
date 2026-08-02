@@ -296,6 +296,10 @@ td { padding: 0 10px; color: #bac4cf; font-size: 12px; overflow: hidden; text-ov
 .metric-grid div:nth-child(n+3) { border-bottom: 0; }
 .metric-grid span, .timeline-grid span { color: var(--muted); font-size: 9px; }
 .metric-grid strong { font-size: 14px; font-variant-numeric: tabular-nums; }
+.metric-grid small { color: var(--muted); font-size: 8px; }
+.metric-grid .safety-verified strong { color: var(--healthy); }
+.metric-grid .safety-blocked strong { color: var(--alert); }
+.metric-grid .safety-pending strong { color: var(--watch); }
 .inspector-section { padding: 18px 0; border-bottom: 1px solid var(--border); }
 .inspector-section h3 { margin: 0 0 11px; font-size: 11px; font-weight: 700; color: #d7dee6; }
 .section-heading-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 11px; }
@@ -305,12 +309,18 @@ td { padding: 0 10px; color: #bac4cf; font-size: 12px; overflow: hidden; text-ov
 .confidence-grid span, .chip-grid span { color: var(--muted); font-size: 9px; }
 .confidence-grid strong, .chip-grid strong { color: #dce3ea; font-size: 12px; font-variant-numeric: tabular-nums; }
 .holder-count { padding: 4px 7px; border: 1px solid #395a50; border-radius: 5px; background: #12231e; color: #7ee0bd; font-size: 9px; font-weight: 700; }
+.kol-cost-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 10px; }
+.kol-cost-grid > div { min-width: 0; display: grid; gap: 4px; padding: 9px 10px; border: 1px solid var(--border-soft); border-radius: 6px; background: #101820; }
+.kol-cost-grid span { color: var(--muted); font-size: 8px; }
+.kol-cost-grid strong { overflow: hidden; color: #dce3ea; font-size: 11px; font-variant-numeric: tabular-nums; text-overflow: ellipsis; white-space: nowrap; }
+.kol-cost-grid .positive-value { color: #75dab7; }
+.kol-cost-grid .negative-value { color: #ef9a8e; }
 .holder-list { display: grid; gap: 7px; }
 .holder-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 10px; border: 1px solid var(--border-soft); border-radius: 6px; background: #0f141a; }
 .holder-row > div { min-width: 0; display: grid; gap: 4px; }
 .holder-row > div:last-child { flex: 0 0 auto; text-align: right; }
 .holder-row strong { overflow: hidden; color: #dce3ea; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.holder-row span { color: var(--muted); font-size: 8px; }
+.holder-row span { color: var(--muted); font-size: 8px; line-height: 1.35; }
 .holder-note { margin: 9px 0 0; color: #737f8c; font-size: 8px; line-height: 1.55; }
 .confidence-grid small { overflow: hidden; color: var(--subtle); font-size: 8px; line-height: 1.45; }
 .calibration-note { margin: 9px 0 0; color: #737f8c; font-size: 8px; line-height: 1.55; }

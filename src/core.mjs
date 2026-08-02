@@ -178,21 +178,69 @@ function requiredRiskFields(candidate) {
 function verification(candidate) {
   const required = requiredRiskFields(candidate);
   const missing = required.filter((field) => candidate[field] === undefined || candidate[field] === null);
-  const completeness = Math.round(((required.length - missing.length) / required.length) * 100);
   const deepStatus = candidate.holderAnalysis?.status || candidate.verificationStatus || "pending";
+  const fieldCompleteness = (required.length - missing.length) / required.length;
+  const completeness = Math.round(fieldCompleteness * 65 + (deepStatus === "verified" ? 35 : 0));
   return { required, missing, completeness, deepStatus };
 }
 
-function calculateSafetyScore(candidate, hardStops) {
-  if (hardStops.length) return 0;
+function detectedRugRisks(candidate) {
+  const hardStops = [];
+  const holder = candidate.holderAnalysis;
+  if (candidate.isHoneypot === true) hardStops.push("疑似貔貅盘");
+  if (candidate.isWashTrading === true) hardStops.push("检测到刷量");
+  if (candidate.liquidity !== undefined && candidate.liquidity < 10_000) hardStops.push("流动性低于 $10k");
+  if (candidate.rugRatio >= 0.1) hardStops.push(`Rug 风险 ${candidate.rugRatio.toFixed(2)} ≥ 0.10`);
+  if (candidate.top10Rate > 0.5) hardStops.push(`Top10 持仓 ${(candidate.top10Rate * 100).toFixed(1)}%`);
+  if (candidate.bundlerRate >= 0.2) hardStops.push(`Bundler 比例 ${(candidate.bundlerRate * 100).toFixed(1)}%`);
+  if (candidate.insiderRate > 0.3) hardStops.push(`疑似内盘比例 ${(candidate.insiderRate * 100).toFixed(1)}%`);
+  if (candidate.chain === "sol" && candidate.renouncedMint === false) hardStops.push("Mint 权限未放弃");
+  if (candidate.chain === "sol" && candidate.renouncedFreeze === false) hardStops.push("Freeze 权限未放弃");
+  if (candidate.chain !== "sol" && candidate.openSource === false) hardStops.push("合约未开源");
+  if (candidate.chain !== "sol" && candidate.ownerRenounced === false) hardStops.push("Owner 权限未放弃");
+  if (holder?.status === "verified") {
+    if (holder.relatedRate >= 0.2) hardStops.push(`关联钱包持仓 ${(holder.relatedRate * 100).toFixed(1)}%`);
+    if (holder.coordinatedRate >= 0.1) hardStops.push(`疑似同步注资持仓 ${(holder.coordinatedRate * 100).toFixed(1)}%`);
+    if (holder.riskWalletRate > 0.3) hardStops.push(`风险钱包持仓 ${(holder.riskWalletRate * 100).toFixed(1)}%`);
+    if (holder.insiderRate > 0.1) hardStops.push(`老鼠仓持仓 ${(holder.insiderRate * 100).toFixed(1)}%`);
+    if (holder.largestWalletRate > 0.15) hardStops.push(`最大普通钱包持仓 ${(holder.largestWalletRate * 100).toFixed(1)}%`);
+    if (holder.devHoldingRate > 0.1) hardStops.push(`开发者持仓 ${(holder.devHoldingRate * 100).toFixed(1)}%`);
+    if (holder.devSockPuppet) hardStops.push("Dev 疑似通过马甲钱包继续控盘");
+    if (holder.airdropRate > 0.15) hardStops.push(`零成本转入持仓 ${(holder.airdropRate * 100).toFixed(1)}%`);
+  }
+  return [...new Set(hardStops)];
+}
+
+export function assessSafety(candidate) {
+  const verificationResult = verification(candidate);
+  const hardStops = detectedRugRisks(candidate);
+  const holder = candidate.holderAnalysis;
   let score = 100;
   score -= Math.min(35, (candidate.rugRatio || 0) * 100);
   score -= Math.min(25, (candidate.top10Rate || 0) * 35);
-  score -= Math.min(30, (candidate.bundlerRate || 0) * 100);
-  score -= Math.min(30, (candidate.insiderRate || 0) * 100);
-  score -= Math.min(30, (candidate.holderAnalysis?.relatedRate || 0) * 100);
-  score -= Math.min(15, (candidate.holderAnalysis?.coordinatedRate || 0) * 50);
-  return Math.max(0, Math.round(score));
+  score -= Math.min(15, (holder?.largestWalletRate || 0) * 80);
+  score -= Math.min(25, Math.max(candidate.bundlerRate || 0, holder?.bundlerRate || 0) * 100);
+  score -= Math.min(25, Math.max(candidate.insiderRate || 0, holder?.insiderRate || 0) * 100);
+  score -= Math.min(25, (holder?.relatedRate || 0) * 100);
+  score -= Math.min(15, (holder?.coordinatedRate || 0) * 50);
+  score -= Math.min(15, (holder?.riskWalletRate || 0) * 40);
+  score -= Math.min(15, (holder?.airdropRate || 0) * 50);
+  score -= Math.min(15, (holder?.devHoldingRate || 0) * 100);
+  score -= Math.round((100 - verificationResult.completeness) * 0.25);
+  const safetyScore = hardStops.length ? 0 : Math.max(0, Math.round(score));
+  const safetyStatus = hardStops.length
+    ? "blocked"
+    : verificationResult.deepStatus === "verified" && verificationResult.missing.length === 0
+      ? "verified"
+      : "pending";
+  return {
+    safetyScore,
+    safetyStatus,
+    dataCompleteness: verificationResult.completeness,
+    missingRiskFields: verificationResult.missing,
+    verificationStatus: verificationResult.deepStatus,
+    safetyHardStops: hardStops
+  };
 }
 
 // 冻结的改造前最后一版评分。不要把验金榜的新规则合并进这里。
@@ -292,7 +340,8 @@ export function scoreCandidateLegacy(candidate, options = {}) {
 
 export function scoreCandidateEarly(candidate, options = {}) {
   const legacy = scoreCandidateLegacy(candidate, options);
-  const hardStops = [...legacy.hardStops];
+  const safety = assessSafety(candidate);
+  const hardStops = [...legacy.hardStops, ...safety.safetyHardStops];
   const holderCount = Number(candidate.holderCount);
   const marketCap = Number(candidate.marketCap);
 
@@ -306,9 +355,15 @@ export function scoreCandidateEarly(candidate, options = {}) {
 
   return {
     ...legacy,
-    hardStops,
-    priority: hardStops.length ? "SKIP" : legacy.priority,
-    strategy: "early-v2"
+    ...safety,
+    hardStops: [...new Set(hardStops)],
+    alertBlocks: safety.safetyStatus === "pending" ? ["关键安全数据或 Top100 尽调尚未完成，仅观察"] : [],
+    priority: hardStops.length
+      ? "SKIP"
+      : (safety.safetyStatus === "pending" || safety.safetyScore < 70) && legacy.priority === "ALERT"
+        ? "WATCH"
+        : legacy.priority,
+    strategy: "early-v3"
   };
 }
 
@@ -416,16 +471,19 @@ export function scoreCandidate(candidate, options = {}) {
   }
 
   const verificationResult = verification(candidate);
+  const safety = assessSafety(candidate);
+  hardStops.push(...safety.safetyHardStops);
   if (options.requireVerification) {
     if (verificationResult.deepStatus !== "verified") alertBlocks.push("Top100 持仓尽调尚未完成");
     if (verificationResult.missing.length) alertBlocks.push(`关键风险数据缺失：${verificationResult.missing.join(", ")}`);
+    if (safety.safetyScore < 70 && safety.safetyHardStops.length === 0) alertBlocks.push("抗跑路安全分低于 70，仅观察");
   }
 
   score = Math.max(0, Math.min(100, Math.round(score)));
-  const safetyScore = calculateSafetyScore(candidate, hardStops);
+  const uniqueHardStops = [...new Set(hardStops)];
   const tooLate = (candidate.priceChange1h || 0) > 150 || (candidate.marketCap || 0) > 20_000_000;
   const phase = tooLate ? "LATE" : smartWallets >= 2 || score >= watchScore ? "BREAKOUT" : age !== null && age <= 3600 ? "EARLY" : "WATCHING";
-  const priority = hardStops.length
+  const priority = uniqueHardStops.length
     ? "SKIP"
     : !tooLate && score >= alertScore && families.size >= 2 && alertBlocks.length === 0
       ? "ALERT"
@@ -444,15 +502,16 @@ export function scoreCandidate(candidate, options = {}) {
     evidenceFamilyCount: families.size,
     strategy: "safety",
     score,
-    safetyScore,
-    dataCompleteness: verificationResult.completeness,
-    missingRiskFields: verificationResult.missing,
-    verificationStatus: verificationResult.deepStatus,
+    safetyScore: safety.safetyScore,
+    safetyStatus: safety.safetyStatus,
+    dataCompleteness: safety.dataCompleteness,
+    missingRiskFields: safety.missingRiskFields,
+    verificationStatus: safety.verificationStatus,
     phase,
     priority,
     reasons: reasons.slice(0, 6),
     risks,
-    hardStops,
+    hardStops: uniqueHardStops,
     alertBlocks
   };
 }

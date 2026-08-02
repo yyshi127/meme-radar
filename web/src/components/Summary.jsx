@@ -21,7 +21,7 @@ export default function Summary({ page, candidates, errorCount }) {
       ))}
       <p className="summary-note">
         {page.key === "discovery"
-          ? "猎星榜优先覆盖，不代表已通过安全确认"
+          ? "ALERT 已完成安全验证且安全分 ≥70；WATCH 可能仍待核验"
           : "验金榜严格过滤，可能牺牲部分早期覆盖"}
       </p>
     </section>

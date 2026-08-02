@@ -189,7 +189,8 @@ export async function scan(config, options = {}) {
   const nextState = { candidates: {}, discoveryCandidates: {} };
   const alerts = [];
   const deepByKey = new Map(sourceCandidates.map((candidate) => [candidate.key, candidate]));
-  let discoveryCandidates = initialScores
+  let discoveryCandidates = sourceCandidates
+    .map((sourceCandidate) => scoreCandidateEarly(sourceCandidate, { now, ...config }))
     .map((candidate) => {
       const previous = oldState.discoveryCandidates?.[candidate.key] || oldState.candidates?.[candidate.key] || {};
       const firstSeen = previous.firstSeen || now;
@@ -205,7 +206,7 @@ export async function scan(config, options = {}) {
         scoreDelta,
         isNewAlert: false
       };
-      nextState.discoveryCandidates[candidate.key] = { firstSeen, lastSeen: now, score: candidate.score, priority: candidate.priority };
+      nextState.discoveryCandidates[candidate.key] = { firstSeen, lastSeen: now, score: enriched.score, priority: enriched.priority };
       return enriched;
     })
     .sort((a, b) => (b.priority === "ALERT") - (a.priority === "ALERT") || b.score - a.score || b.evidenceFamilyCount - a.evidenceFamilyCount);
@@ -253,7 +254,7 @@ export async function scan(config, options = {}) {
     deepAnalysis: { ...deepAnalysis, outcomeSamples },
     calibration: calibration.report,
     strategies: {
-      discovery: { name: "猎星榜", version: "early-v2", description: "原版评分加持币地址 >300、市值 $10k–$2M 两项硬过滤" },
+      discovery: { name: "猎星榜", version: "early-v3", description: "原版评分加持币地址 >300、市值 $10k–$2M，并对已检测 Rug 风险一票否决；安全数据未完成时仅观察" },
       safety: { name: "验金榜", description: "通过 Top100、关联钱包和合约安全进行严格确认" }
     }
   };

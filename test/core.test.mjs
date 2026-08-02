@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getCandidate, mergeMarketRow, mergeSignal, mergeTrade, scoreCandidate, scoreCandidateEarly, scoreCandidateLegacy } from "../src/core.mjs";
+import { assessSafety, getCandidate, mergeMarketRow, mergeSignal, mergeTrade, scoreCandidate, scoreCandidateEarly, scoreCandidateLegacy } from "../src/core.mjs";
 
 const SOL = "So11111111111111111111111111111111111111112";
 
@@ -47,6 +47,121 @@ test("高 rug 风险始终硬过滤", () => {
   const result = scoreCandidate(item, { now: 2_000_000_000 });
   assert.equal(result.priority, "SKIP");
   assert.match(result.hardStops.join(" "), /Rug/);
+  assert.equal(result.safetyScore, 0);
+  assert.equal(result.safetyStatus, "blocked");
+});
+
+test("保守模式下 Rug 风险达到 0.10 即取消推荐资格", () => {
+  const item = candidate();
+  mergeMarketRow(item, {
+    address: SOL,
+    market_cap: 100000,
+    liquidity: 30000,
+    holder_count: 500,
+    rug_ratio: 0.1,
+    top_10_holder_rate: 0.1,
+    bundler_rate: 0.01,
+    rat_trader_amount_rate: 0.01,
+    renounced_mint: 1,
+    renounced_freeze_account: 1
+  }, "trending");
+  const result = scoreCandidateEarly(item);
+  assert.equal(result.priority, "SKIP");
+  assert.equal(result.safetyScore, 0);
+  assert.match(result.safetyHardStops.join(" "), /Rug/);
+});
+
+test("猎星候选始终提供安全分，安全数据不完整时不得进入 ALERT", () => {
+  const item = candidate();
+  mergeMarketRow(item, {
+    address: SOL,
+    market_cap: 100000,
+    liquidity: 30000,
+    holder_count: 500,
+    rug_ratio: 0.02,
+    top_10_holder_rate: 0.1,
+    bundler_rate: 0.01,
+    rat_trader_amount_rate: 0.01,
+    renounced_mint: 1,
+    renounced_freeze_account: 1
+  }, "trending");
+  for (let i = 0; i < 4; i += 1) mergeTrade(item, { maker: `wallet-${i}`, amount_usd: 1000, timestamp: 2_000_000_000 }, "smart");
+  mergeSignal(item, { signal_type: 12, token_address: SOL, data: {} });
+
+  const result = scoreCandidateEarly(item, { now: 2_000_000_000 });
+  assert.ok(Number.isFinite(result.safetyScore));
+  assert.equal(result.safetyStatus, "pending");
+  assert.ok(result.dataCompleteness < 100);
+  assert.notEqual(result.priority, "ALERT");
+});
+
+test("Top100 与关键字段完整且无硬风险时安全状态通过", () => {
+  const item = candidate();
+  mergeMarketRow(item, {
+    address: SOL,
+    market_cap: 100000,
+    liquidity: 30000,
+    holder_count: 500,
+    rug_ratio: 0.02,
+    top_10_holder_rate: 0.1,
+    bundler_rate: 0.01,
+    rat_trader_amount_rate: 0.01,
+    renounced_mint: 1,
+    renounced_freeze_account: 1
+  }, "trending");
+  item.holderAnalysis = {
+    status: "verified",
+    relatedRate: 0,
+    coordinatedRate: 0,
+    riskWalletRate: 0.01,
+    insiderRate: 0,
+    largestWalletRate: 0.05,
+    bundlerRate: 0.01,
+    airdropRate: 0.01,
+    devHoldingRate: 0,
+    devSockPuppet: false
+  };
+  const result = assessSafety(item);
+  assert.equal(result.safetyStatus, "verified");
+  assert.equal(result.dataCompleteness, 100);
+  assert.ok(result.safetyScore > 0);
+});
+
+test("没有触发单项硬风险但综合安全分低于 70 时只能观察", () => {
+  const item = candidate();
+  mergeMarketRow(item, {
+    address: SOL,
+    market_cap: 250000,
+    liquidity: 60000,
+    holder_count: 800,
+    rug_ratio: 0.05,
+    top_10_holder_rate: 0.3,
+    bundler_rate: 0.05,
+    rat_trader_amount_rate: 0.05,
+    renounced_mint: 1,
+    renounced_freeze_account: 1,
+    creation_timestamp: 2_000_000_000 - 900,
+    website: "https://example.test"
+  }, "trending");
+  for (let i = 0; i < 4; i += 1) mergeTrade(item, { maker: `safe-${i}`, amount_usd: 1000, timestamp: 2_000_000_000 }, "smart");
+  mergeSignal(item, { signal_type: 12, token_address: SOL, data: {} });
+  item.holderAnalysis = {
+    status: "verified",
+    relatedRate: 0.03,
+    coordinatedRate: 0.02,
+    riskWalletRate: 0.1,
+    insiderRate: 0.05,
+    largestWalletRate: 0.1,
+    bundlerRate: 0.05,
+    airdropRate: 0.05,
+    devHoldingRate: 0.02,
+    devSockPuppet: false
+  };
+
+  const result = scoreCandidateEarly(item, { now: 2_000_000_000 });
+  assert.equal(result.safetyStatus, "verified");
+  assert.ok(result.safetyScore < 70);
+  assert.equal(result.priority, "WATCH");
 });
 
 test("只靠单个 KOL 不会报警", () => {
@@ -200,7 +315,7 @@ test("猎星 legacy-v1 与改造前固定样本得分一致", () => {
   assert.equal(result.strategy, "legacy-v1");
 });
 
-test("猎星 early-v2 硬过滤持币地址不超过 300 的候选", () => {
+test("猎星 early-v3 硬过滤持币地址不超过 300 的候选", () => {
   const blocked = candidate();
   mergeMarketRow(blocked, {
     address: SOL,
@@ -233,7 +348,7 @@ test("猎星 early-v2 硬过滤持币地址不超过 300 的候选", () => {
   assert.doesNotMatch(scoreCandidateEarly(allowed).hardStops.join(" "), /持币地址/);
 });
 
-test("猎星 early-v2 只允许 $10k–$2M 市值区间", () => {
+test("猎星 early-v3 只允许 $10k–$2M 市值区间", () => {
   for (const [marketCap, shouldBlock] of [[9_999, true], [10_000, false], [2_000_000, false], [2_000_001, true]]) {
     const item = candidate();
     mergeMarketRow(item, {

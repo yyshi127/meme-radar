@@ -74,7 +74,7 @@ export async function enrichDeepCandidates(candidates, initialScores, options) {
   await mapLimit(selectedKeys.slice(0, limit), concurrency, async (key) => {
     const candidate = byKey.get(key);
     const cached = store.getHolderCache(key, cacheSeconds);
-    if (cached?.status === "verified" && cached.payload?.holderAnalysis?.analysisVersion === 2) {
+    if (cached?.status === "verified" && cached.payload?.holderAnalysis?.analysisVersion === 3) {
       applyPayload(candidate, cached.payload);
       return;
     }

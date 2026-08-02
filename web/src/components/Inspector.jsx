@@ -22,6 +22,12 @@ function scoreStatus(status) {
   return "等待尽调";
 }
 
+function safetyStatus(status) {
+  if (status === "verified") return "已完成关键验证";
+  if (status === "blocked") return "已发现硬风险";
+  return "待完成关键验证";
+}
+
 function shortWallet(address) {
   if (!address) return "未知地址";
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
@@ -31,6 +37,17 @@ function holderPercent(value) {
   if (!Number.isFinite(value)) return "—";
   const percentage = value * 100;
   return `${percentage < 0.1 ? percentage.toFixed(3) : percentage.toFixed(2)}%`;
+}
+
+function tokenPrice(value) {
+  if (!Number.isFinite(value) || value <= 0) return "未知";
+  if (value < 0.000001) return `$${value.toExponential(3)}`;
+  return `$${value.toLocaleString("en-US", { useGrouping: false, minimumSignificantDigits: 3, maximumSignificantDigits: 6 })}`;
+}
+
+function signedPercent(value) {
+  if (!Number.isFinite(value)) return "—";
+  return `${value >= 0 ? "+" : ""}${(value * 100).toFixed(1)}%`;
 }
 
 export default function Inspector({ item, watched, watchBusy, calibration, page, onToggleWatch }) {
@@ -44,6 +61,13 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
     setTimeout(() => setCopied(false), 1400);
   }
   const gmgnUrl = gmgnTokenUrl(item.chain, item.address);
+  const kolAverageCost = item.holderAnalysis?.currentKolAverageCost;
+  const kolCostGap = Number.isFinite(kolAverageCost) && kolAverageCost > 0 && Number.isFinite(item.price)
+    ? item.price / kolAverageCost - 1
+    : null;
+  const kolEntryMarketCap = Number.isFinite(kolAverageCost) && kolAverageCost > 0 && Number.isFinite(item.price) && item.price > 0 && Number.isFinite(item.marketCap)
+    ? item.marketCap * kolAverageCost / item.price
+    : null;
   return (
     <aside className="inspector">
       <div className="inspector-heading">
@@ -74,8 +98,8 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
       )}
 
       <div className={`strategy-banner strategy-banner-${page.key}`} role="note">
-        <strong>{page.key === "discovery" ? "猎星榜 · early-v2" : page.name}</strong>
-        <span>{page.key === "discovery" ? "硬过滤：持币地址必须 >300，市值必须在 $10k–$2M；风险尽调不参与入榜。" : "已将关键风险缺失、关联控盘与高 Bundler 纳入过滤。"}</span>
+        <strong>{page.key === "discovery" ? "猎星榜 · early-v3" : page.name}</strong>
+        <span>{page.key === "discovery" ? "硬过滤：持币地址 >300、市值 $10k–$2M；Rug 风险 ≥0.10 或其他明确跑路信号一票否决，安全数据未完成时仅观察。" : "已将关键风险缺失、关联控盘与高 Bundler 纳入过滤。"}</span>
       </div>
 
       <div className="contract-block">
@@ -93,7 +117,11 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
       <div className="metric-grid">
         <div><span>市值</span><strong>{money(item.marketCap)}</strong></div>
         <div><span>流动性</span><strong>{money(item.liquidity)}</strong></div>
-        <div><span>安全分</span><strong>{item.safetyScore ?? "—"}</strong></div>
+        <div className={`safety-metric safety-${item.safetyStatus || "pending"}`}>
+          <span>抗跑路安全分</span>
+          <strong>{Number.isFinite(item.safetyScore) ? `${item.safetyScore}/100` : "待评估"}</strong>
+          <small>{safetyStatus(item.safetyStatus)}</small>
+        </div>
         <div><span>数据完整度</span><strong>{Number.isFinite(item.dataCompleteness) ? `${item.dataCompleteness}%` : "—"}</strong></div>
       </div>
 
@@ -140,6 +168,15 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
           <h3>当前持有的 KOL</h3>
           <span className="holder-count">{item.holderAnalysis?.currentKolHolderCount ?? "—"} 个</span>
         </div>
+        {Number.isFinite(kolAverageCost) && kolAverageCost > 0 && (
+          <div className="kol-cost-grid">
+            <div><span>KOL 加权成本</span><strong>{tokenPrice(kolAverageCost)}</strong></div>
+            <div><span>当前价格</span><strong>{tokenPrice(item.price)}</strong></div>
+            <div><span>相对 KOL 成本</span><strong className={Number.isFinite(kolCostGap) ? (kolCostGap >= 0 ? "positive-value" : "negative-value") : ""}>{signedPercent(kolCostGap)}</strong></div>
+            <div><span>估算建仓市值</span><strong>{money(kolEntryMarketCap)}</strong></div>
+            <div><span>成本覆盖率</span><strong>{percent(item.holderAnalysis.currentKolCostCoverage)}</strong></div>
+          </div>
+        )}
         {Array.isArray(item.holderAnalysis?.currentKolHolders) ? (
           item.holderAnalysis.currentKolHolders.length ? (
             <div className="holder-list">
@@ -151,7 +188,8 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
                   </div>
                   <div>
                     <strong>{holderPercent(holder.amountPercentage)}</strong>
-                    <span>买 {holder.buyTxCount} / 卖 {holder.sellTxCount}</span>
+                    <span>均价 {tokenPrice(holder.averageCost)}</span>
+                    <span>浮盈 {signedPercent(holder.unrealizedPnl)} · 买 {holder.buyTxCount} / 卖 {holder.sellTxCount}</span>
                   </div>
                 </div>
               ))}
@@ -159,7 +197,7 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
           ) : <p className="list-empty">未发现当前余额大于 0 的 GMGN KOL 钱包。</p>
         ) : <p className="list-empty">等待下一轮深度扫描生成 KOL 持仓名单。</p>}
         <p className="holder-note">
-          只统计当前余额大于 0 的 GMGN KOL 标签钱包；已清仓者不会计入。
+          加权成本按当前持仓数量计算；转账或成本未知的仓位不参与成本计算，并反映在覆盖率中。已清仓 KOL 不计入。
           {item.holderAnalysis?.currentKolCoverage === "top100-only" ? " 当前名单仅覆盖 Top100，可能不完整。" : ""}
         </p>
       </section>

@@ -26,6 +26,12 @@ function walletText(value) {
   return cleaned ? cleaned.slice(0, 80) : null;
 }
 
+function finiteNumber(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function currentTaggedHolders(payload, fallback, tagNames) {
   const queried = holderList(payload);
   const source = queried ?? fallback.filter((holder) => tagNames.some((tag) => hasTag(holder, tag)));
@@ -37,8 +43,12 @@ function currentTaggedHolders(payload, fallback, tagNames) {
       address,
       name: walletText(holder.twitter_name) || walletText(holder.name),
       twitterUsername: walletText(holder.twitter_username),
+      balance: Number(holder.balance),
       amountPercentage: rate(holder),
       usdValue: Number(holder.usd_value || 0),
+      averageCost: finiteNumber(holder.avg_cost),
+      unrealizedPnl: finiteNumber(holder.unrealized_pnl),
+      realizedProfit: finiteNumber(holder.realized_profit),
       buyTxCount: Number(holder.buy_tx_count_cur || 0),
       sellTxCount: Number(holder.sell_tx_count_cur || 0),
       sellAmountPercentage: Number(holder.sell_amount_percentage || 0),
@@ -74,6 +84,12 @@ export function analyzeHolders(payload, options = {}) {
   const kolList = holderList(options.kolPayload);
   const currentSmartHolders = currentTaggedHolders(options.smartPayload, normal, ["smart_degen", "pump_smart"]);
   const currentKolHolders = currentTaggedHolders(options.kolPayload, normal, ["renowned", "kol"]);
+  const currentKolBalance = currentKolHolders.reduce((total, holder) => total + holder.balance, 0);
+  const costedKolHolders = currentKolHolders.filter((holder) => Number.isFinite(holder.averageCost) && holder.averageCost > 0);
+  const currentKolCostedBalance = costedKolHolders.reduce((total, holder) => total + holder.balance, 0);
+  const currentKolAverageCost = currentKolCostedBalance > 0
+    ? costedKolHolders.reduce((total, holder) => total + holder.balance * holder.averageCost, 0) / currentKolCostedBalance
+    : null;
 
   const riskAddresses = new Set([...bundlers, ...rats, ...snipers, ...wash].map((holder) => holder.address));
   const riskWallets = normal.filter((holder) => riskAddresses.has(holder.address));
@@ -127,7 +143,7 @@ export function analyzeHolders(payload, options = {}) {
   const badRate = sumRate(normal.filter((holder) => badAddresses.has(holder.address)));
 
   return {
-    analysisVersion: 2,
+    analysisVersion: 3,
     status: "verified",
     checkedAt: new Date().toISOString(),
     sampleSize: holders.length,
@@ -157,6 +173,8 @@ export function analyzeHolders(payload, options = {}) {
     currentSmartCoverage: smartList === null ? "top100-only" : "all-tagged",
     currentKolHolderCount: currentKolHolders.length,
     currentKolHolderRate: currentKolHolders.reduce((total, holder) => total + holder.amountPercentage, 0),
+    currentKolAverageCost,
+    currentKolCostCoverage: currentKolBalance > 0 ? currentKolCostedBalance / currentKolBalance : null,
     currentKolHolders,
     currentKolCoverage: kolList === null ? "top100-only" : "all-tagged",
     burnRate: sumRate(burn),
