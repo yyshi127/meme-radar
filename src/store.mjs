@@ -96,7 +96,9 @@ export function createRadarStore(file = path.join(root, "data", "radar.sqlite"))
     deleteWatch: db.prepare("DELETE FROM watchlist WHERE key=?"),
     listWatch: db.prepare("SELECT * FROM watchlist ORDER BY added_at DESC"),
     watchKeys: db.prepare("SELECT key FROM watchlist"),
+    getWatchSnapshot: db.prepare("SELECT snapshot_json FROM watchlist WHERE key=?"),
     updateWatch: db.prepare("UPDATE watchlist SET last_seen_at=?, snapshot_json=?, hit_count=hit_count+1 WHERE key=?"),
+    updateWatchMarket: db.prepare("UPDATE watchlist SET snapshot_json=? WHERE key=?"),
     getHolderCache: db.prepare("SELECT * FROM holder_cache WHERE key=?"),
     putHolderCache: db.prepare(`
       INSERT INTO holder_cache(key, checked_at, status, payload_json, error)
@@ -178,6 +180,22 @@ export function createRadarStore(file = path.join(root, "data", "radar.sqlite"))
       statements.updateWatch.run(now, JSON.stringify(candidate), candidate.key);
       synced.add(candidate.key);
     }
+  }
+
+  function updateWatchMarket(candidate, now = Math.floor(Date.now() / 1000)) {
+    const key = watchKey(candidate.chain, candidate.address);
+    const row = statements.getWatchSnapshot.get(key);
+    if (!row) return false;
+    const snapshot = parseJson(row.snapshot_json, {});
+    let changed = false;
+    for (const field of ["price", "marketCap", "liquidity"]) {
+      if (!Number.isFinite(candidate[field])) continue;
+      snapshot[field] = candidate[field];
+      changed = true;
+    }
+    if (!changed) return false;
+    snapshot.marketUpdatedAt = new Date(now * 1000).toISOString();
+    return statements.updateWatchMarket.run(JSON.stringify(snapshot), key).changes > 0;
   }
 
   function getHolderCache(key, maxAgeSeconds) {
@@ -370,6 +388,7 @@ export function createRadarStore(file = path.join(root, "data", "radar.sqlite"))
     listWatchlist,
     watchedKeys,
     syncWatchSnapshots,
+    updateWatchMarket,
     getHolderCache,
     putHolderCache,
     getKlineCache,

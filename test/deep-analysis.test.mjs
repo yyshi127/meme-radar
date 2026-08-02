@@ -60,3 +60,40 @@ test("深度分析名额优先覆盖 ALERT/WATCH，而不是高分 SKIP", async 
   assert.equal(watched.verificationStatus, "verified");
   assert.equal(skipped.verificationStatus, "pending");
 });
+
+test("深度分析缓存不得覆盖本轮最新行情", async () => {
+  const candidate = getCandidate(new Map(), "bsc", "0x4444444444444444444444444444444444444444");
+  candidate.price = 0.00004;
+  candidate.marketCap = 40_000;
+  candidate.liquidity = 18_000;
+  const store = {
+    getHolderCache: () => ({
+      status: "verified",
+      checkedAt: 1_800_000_000,
+      payload: {
+        metadataVersion: 1,
+        holderAnalysis: { status: "verified", analysisVersion: 4 },
+        info: {
+          price: 0.000031,
+          market_cap: 31_000,
+          liquidity: 16_000,
+          link: { description: "Cached project description." }
+        },
+        security: { is_open_source: 1, is_renounced: 1, is_honeypot: 0 }
+      }
+    }),
+    putHolderCache: () => {}
+  };
+
+  await enrichDeepCandidates(
+    [candidate],
+    [{ key: candidate.key, priority: "WATCH", score: 60 }],
+    { gmgn: async () => { throw new Error("不应重新请求"); }, store, limit: 1, concurrency: 1 }
+  );
+
+  assert.equal(candidate.price, 0.00004);
+  assert.equal(candidate.marketCap, 40_000);
+  assert.equal(candidate.liquidity, 18_000);
+  assert.equal(candidate.narrativeDescription, "Cached project description.");
+  assert.equal(candidate.openSource, true);
+});

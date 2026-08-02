@@ -5,6 +5,7 @@ import { checkConfig, gmgn } from "./gmgn.mjs";
 import { enrichDeepCandidates } from "./deep-analysis.mjs";
 import { enrichLifetimeTrends } from "./lifetime-trend.mjs";
 import { radarStore } from "./store.mjs";
+import { refreshWatchMarkets } from "./watch-market.mjs";
 import {
   cleanText,
   escapeMarkdown,
@@ -164,6 +165,7 @@ export async function scan(config, options = {}) {
   const errors = [];
   const notices = [];
   for (const chain of config.chains) await collectChain(book, chain, config, errors, notices);
+  const watchMarketsRefreshed = await refreshWatchMarkets(book, { gmgn, store: radarStore, notices });
 
   const now = Math.floor(Date.now() / 1000);
   const sourceCandidates = [...book.values()];
@@ -260,7 +262,7 @@ export async function scan(config, options = {}) {
     alerts: decoratedAlerts,
     errors,
     notices,
-    deepAnalysis: { selected: deepAnalysis.selected, lifetimeTrends: trendAnalysis, outcomeSamples },
+    deepAnalysis: { selected: deepAnalysis.selected, lifetimeTrends: trendAnalysis, outcomeSamples, watchMarketsRefreshed },
     calibration: calibration.report,
     strategies: {
       discovery: { name: "猎星榜", version: "early-v3", description: "原版评分加持币地址 >300、市值 $10k–$2M，并对已检测 Rug 风险一票否决；安全数据未完成时仅观察" },

@@ -7,8 +7,16 @@ function maxKnown(current, next) {
 }
 
 function applyPayload(candidate, payload) {
+  const currentMarket = {
+    price: candidate.price,
+    marketCap: candidate.marketCap,
+    liquidity: candidate.liquidity
+  };
   if (payload?.info) mergeMarketRow(candidate, payload.info, "deep-info");
   if (payload?.security) mergeMarketRow(candidate, payload.security, "deep-security");
+  for (const [field, value] of Object.entries(currentMarket)) {
+    if (Number.isFinite(value)) candidate[field] = value;
+  }
   if (payload?.holderAnalysis) {
     candidate.holderAnalysis = payload.holderAnalysis;
     candidate.verificationStatus = payload.holderAnalysis.status;
