@@ -82,6 +82,11 @@ async function desktopQa() {
   assert.equal(await firstTokenLink.getAttribute("href"), expectedGmgnUrl);
   assert.equal(await firstTokenLink.getAttribute("target"), "_blank");
   assert.equal(await page.locator(".gmgn-web-action").getAttribute("href"), expectedGmgnUrl);
+  const twitterAction = page.locator(".twitter-action");
+  if (await twitterAction.count()) {
+    assert.match(await twitterAction.getAttribute("href"), /^https:\/\/(?:x\.com|(?:www\.|mobile\.)?twitter\.com)\//);
+    assert.equal(await twitterAction.getAttribute("target"), "_blank");
+  }
   const popupPromise = page.waitForEvent("popup");
   await firstTokenLink.click();
   const popup = await popupPromise;

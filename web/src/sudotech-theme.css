@@ -1073,6 +1073,10 @@ td {
   margin: -2px 0 16px;
 }
 
+.gmgn-link-actions.has-twitter {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
 .gmgn-link-actions .gmgn-detail-link {
   margin: 0;
 }
@@ -1094,6 +1098,17 @@ td {
   border-color: var(--brand-deep);
   background: linear-gradient(135deg, #19b294, var(--brand-deep));
   color: #fff;
+}
+
+.twitter-action {
+  border-color: #172a34;
+  background: linear-gradient(135deg, #172a34, #0b151b);
+  box-shadow: 0 9px 22px rgba(15, 32, 40, 0.14);
+}
+
+.twitter-action:hover {
+  border-color: #263f4a;
+  background: linear-gradient(135deg, #213945, #101f27);
 }
 
 .metric-grid {
@@ -1805,6 +1820,10 @@ td {
 
   .gmgn-link-actions {
     grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  }
+
+  .gmgn-link-actions.has-twitter .twitter-action {
+    grid-column: 1 / -1;
   }
 
   .gmgn-app-action {
