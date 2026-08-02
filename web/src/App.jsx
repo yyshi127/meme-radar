@@ -28,7 +28,8 @@ async function api(path, options) {
 }
 
 export default function App() {
-  const page = window.location.pathname === pages.safety.path ? pages.safety : pages.discovery;
+  const [pageKey, setPageKey] = useState(() => window.location.pathname === pages.safety.path ? pages.safety.key : pages.discovery.key);
+  const page = pages[pageKey];
   const [report, setReport] = useState(null);
   const [status, setStatus] = useState(null);
   const [watchlist, setWatchlist] = useState([]);
@@ -55,11 +56,23 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    document.title = `${page.name} · Meme Radar`;
     refresh();
     const timer = setInterval(refresh, 5000);
     return () => clearInterval(timer);
-  }, [page.name, refresh]);
+  }, [refresh]);
+
+  useEffect(() => {
+    document.title = `${page.name} · Meme Radar`;
+  }, [page.name]);
+
+  useEffect(() => {
+    function syncPageFromHistory() {
+      setPageKey(window.location.pathname === pages.safety.path ? pages.safety.key : pages.discovery.key);
+      setMobileDetailOpen(false);
+    }
+    window.addEventListener("popstate", syncPageFromHistory);
+    return () => window.removeEventListener("popstate", syncPageFromHistory);
+  }, []);
 
   useEffect(() => {
     document.body.classList.toggle("mobile-detail-open", mobileDetailOpen);
@@ -146,9 +159,16 @@ export default function App() {
     }
   }
 
+  function navigatePage(nextPage) {
+    if (nextPage.key === page.key) return;
+    window.history.pushState({}, "", nextPage.path);
+    setPageKey(nextPage.key);
+    setMobileDetailOpen(false);
+  }
+
   return (
     <main className="app-shell">
-      <Header page={page} pages={pages} status={status} generatedAt={report?.generatedAt} onScan={runScan} />
+      <Header page={page} pages={pages} status={status} generatedAt={report?.generatedAt} onNavigate={navigatePage} onScan={runScan} />
       <Summary page={page} candidates={candidates} errorCount={report?.errors?.length || 0} />
       {error && <div className="app-error" role="alert">{error}</div>}
       <Filters filters={filters} onChange={setFilters} resultCount={filtered.length} />

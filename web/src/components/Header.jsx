@@ -2,7 +2,7 @@ import { RefreshIcon } from "./Icons.jsx";
 import { localTime } from "../lib/format.js";
 import InstallApp from "./InstallApp.jsx";
 
-export default function Header({ page, pages, status, generatedAt, onScan }) {
+export default function Header({ page, pages, status, generatedAt, onNavigate, onScan }) {
   const scanning = Boolean(status?.scanning);
   return (
     <header className="topbar">
@@ -15,7 +15,17 @@ export default function Header({ page, pages, status, generatedAt, onScan }) {
       </div>
       <nav className="page-nav" aria-label="雷达榜单">
         {Object.values(pages).map((item) => (
-          <a key={item.key} href={item.path} className={page.key === item.key ? "active" : ""} aria-current={page.key === item.key ? "page" : undefined}>
+          <a
+            key={item.key}
+            href={item.path}
+            className={page.key === item.key ? "active" : ""}
+            aria-current={page.key === item.key ? "page" : undefined}
+            onClick={(event) => {
+              if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+              event.preventDefault();
+              onNavigate(item);
+            }}
+          >
             <strong>{item.name}</strong>
             <small>{item.key === "discovery" ? "先发现" : "再验证"}</small>
           </a>

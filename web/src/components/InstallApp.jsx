@@ -8,6 +8,11 @@ function isHarmonyDevice() {
   return /harmonyos|huawei|honor/i.test(window.navigator.userAgent);
 }
 
+function isChromeBrowser() {
+  const userAgent = window.navigator.userAgent;
+  return /chrome|crios/i.test(userAgent) && !/edg|opr|huaweibrowser/i.test(userAgent);
+}
+
 function InstallIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -22,6 +27,7 @@ export default function InstallApp() {
   const [guideOpen, setGuideOpen] = useState(false);
   const [installed, setInstalled] = useState(isStandalone);
   const harmony = isHarmonyDevice();
+  const chrome = isChromeBrowser();
 
   useEffect(() => {
     function capturePrompt(event) {
@@ -58,14 +64,23 @@ export default function InstallApp() {
     <>
       <button className="install-button" type="button" onClick={install} aria-label="添加 Meme Radar 到桌面">
         <InstallIcon />
-        <span>{installPrompt ? "安装应用" : "添加到桌面"}</span>
+        <span>{installPrompt ? "安装应用" : "桌面安装指引"}</span>
       </button>
       {guideOpen && (
         <div className="install-dialog-backdrop" role="presentation" onMouseDown={() => setGuideOpen(false)}>
           <section className="install-dialog" role="dialog" aria-modal="true" aria-labelledby="install-title" onMouseDown={(event) => event.stopPropagation()}>
             <div className="install-app-mark" aria-hidden="true"><span /></div>
             <h2 id="install-title">添加 Meme Radar 到桌面</h2>
-            {harmony ? (
+            {chrome ? (
+              <>
+                <p>当前使用 Chrome，请通过浏览器菜单完成：</p>
+                <ol>
+                  <li>点击 Chrome 右上角的 <strong>⋮</strong></li>
+                  <li>选择 <strong>添加到主屏幕</strong>；满足 PWA 条件时会显示“安装应用”</li>
+                  <li>确认名称后点击添加，桌面会生成雷达图标</li>
+                </ol>
+              </>
+            ) : harmony ? (
               <>
                 <p>当前是鸿蒙设备，请在华为浏览器中完成：</p>
                 <ol>
