@@ -97,6 +97,7 @@ function hitTone(count) {
 }
 
 function SameNameBenchmark({ item }) {
+  const [addressCopied, setAddressCopied] = useState(false);
   const reference = item.sameNameLeader;
   const leader = reference?.leader;
   if (reference?.status !== "ready" || !leader) {
@@ -112,6 +113,35 @@ function SameNameBenchmark({ item }) {
     : null;
   const leaderMarketCap = Number(leader.marketCap);
   const highlightLeader = Number.isFinite(leaderMarketCap) && leaderMarketCap > 1_000_000;
+  const leaderGmgnUrl = gmgnTokenUrl(leader.chain, leader.address);
+
+  async function copyLeaderAddress() {
+    let copied = false;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(leader.address);
+        copied = true;
+      }
+    } catch {
+      // HTTP IP access may not expose the Clipboard API; fall back below.
+    }
+    if (!copied) {
+      const textarea = document.createElement("textarea");
+      textarea.value = leader.address;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      copied = document.execCommand("copy");
+      textarea.remove();
+    }
+    if (copied) {
+      setAddressCopied(true);
+      setTimeout(() => setAddressCopied(false), 1400);
+    }
+  }
+
   return (
     <section className={`same-name-benchmark ${reference.isCurrent ? "is-current" : ""} ${highlightLeader ? "is-million-plus" : ""}`}>
       <div className="same-name-label">
@@ -119,14 +149,32 @@ function SameNameBenchmark({ item }) {
         <small>按代码精确匹配 · DexScreener</small>
       </div>
       <div className="same-name-main">
-        <div><strong>{leader.symbol}</strong><span>{leader.name}</span></div>
+        <div className="same-name-token">
+          {leaderGmgnUrl ? (
+            <a className="same-name-token-link" href={leaderGmgnUrl} target="_blank" rel="noopener noreferrer" title={`在 GMGN 查看 ${leader.symbol}`}>
+              <span className="same-name-token-copy"><strong>{leader.symbol}</strong><span>{leader.name}</span></span>
+              <ExternalLinkIcon />
+            </a>
+          ) : (
+            <><strong>{leader.symbol}</strong><span>{leader.name}</span></>
+          )}
+        </div>
         <div><strong>{money(leader.marketCap)}</strong><span>{reference.isCurrent ? "当前币已是第一" : multiple ? `当前币的 ${multiple} 倍` : "同名市值第一"}</span></div>
+      </div>
+      <div className="same-name-contract">
+        <code title={leader.address}>{leader.address}</code>
+        <button type="button" onClick={copyLeaderAddress} aria-label={`复制 ${leader.symbol} 合约地址`}>
+          {addressCopied ? <CheckIcon /> : <CopyIcon />}
+          <span>{addressCopied ? "已复制" : "复制合约"}</span>
+        </button>
       </div>
       <div className="same-name-meta">
         <span className={`chain chain-${leader.chain}`}>{leader.chain.toUpperCase()}</span>
-        <code title={leader.address}>{shortWallet(leader.address)}</code>
         <span>{reference.matchCount} 枚精确同代码样本</span>
-        {leader.pairUrl && <a href={leader.pairUrl} target="_blank" rel="noopener noreferrer">查看对标 <ExternalLinkIcon /></a>}
+        <span className="same-name-meta-actions">
+          {leaderGmgnUrl && <a href={leaderGmgnUrl} target="_blank" rel="noopener noreferrer">GMGN 详情 <ExternalLinkIcon /></a>}
+          {leader.pairUrl && <a href={leader.pairUrl} target="_blank" rel="noopener noreferrer">DexScreener <ExternalLinkIcon /></a>}
+        </span>
       </div>
     </section>
   );
@@ -315,7 +363,7 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
                 : "当前为有限资料下的主题线索，不用于证明项目真实性或上涨概率。"}
             </small>
           </section>
-          <SameNameBenchmark item={item} />
+          <SameNameBenchmark key={item.key} item={item} />
         </div>
       </section>
 
