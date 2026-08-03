@@ -56,6 +56,14 @@ export default function Filters({ filters, onChange, resultCount }) {
           <option value="604800">7天内</option>
         </select>
       </label>
+      <label className="select-control select-control-sort">
+        <span>排序</span>
+        <select value={filters.marketCapSort} onChange={(event) => update("marketCapSort", event.target.value)}>
+          <option value="default">默认排名</option>
+          <option value="asc">市值低→高</option>
+          <option value="desc">市值高→低</option>
+        </select>
+      </label>
       <label className="search-control">
         <SearchIcon />
         <input

@@ -6,8 +6,9 @@ import Summary from "./components/Summary.jsx";
 import TokenTable from "./components/TokenTable.jsx";
 import { isCreatedWithin } from "./lib/format.js";
 import { loadCachedReport, saveCachedReport } from "./lib/report-cache.js";
+import { sortCandidatesByMarketCap } from "./lib/candidate-sort.js";
 
-const defaultFilters = { priority: "focus", chain: "all", phase: "all", createdWithin: "all", query: "" };
+const defaultFilters = { priority: "focus", chain: "all", phase: "all", createdWithin: "all", marketCapSort: "default", query: "" };
 const pages = {
   discovery: {
     key: "discovery",
@@ -210,7 +211,7 @@ export default function App() {
     const query = filters.query.trim().toLowerCase();
     const source = filters.priority === "saved" ? watchedCandidates : candidates;
     const scanTime = report?.generatedAt ? Date.parse(report.generatedAt) : Date.now();
-    return source.filter((item) => {
+    const matches = source.filter((item) => {
       if (filters.priority === "focus" && !["ALERT", "WATCH"].includes(item.priority)) return false;
       if (!["focus", "all", "saved"].includes(filters.priority) && item.priority !== filters.priority) return false;
       if (filters.chain !== "all" && item.chain !== filters.chain) return false;
@@ -219,6 +220,7 @@ export default function App() {
       if (query && !`${item.symbol} ${item.name} ${item.address}`.toLowerCase().includes(query)) return false;
       return true;
     });
+    return sortCandidatesByMarketCap(matches, filters.marketCapSort);
   }, [candidates, filters, report?.generatedAt, watchedCandidates]);
 
   useEffect(() => {

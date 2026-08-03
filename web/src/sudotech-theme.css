@@ -2546,10 +2546,6 @@ td {
     justify-content: space-between;
   }
 
-  .select-control-created {
-    grid-column: 1 / -1;
-  }
-
   .search-control {
     grid-column: 1 / -1;
     order: initial;
