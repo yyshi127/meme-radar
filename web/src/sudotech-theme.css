@@ -1679,6 +1679,32 @@ td {
   box-shadow: 0 4px 10px rgba(224, 80, 42, 0.18);
 }
 
+.developer-ath-ranking a.is-million-plus,
+.developer-ath-ranking a.is-million-plus:hover {
+  border-color: #f26522;
+  background: #f26522;
+  box-shadow: 0 9px 22px rgba(242, 101, 34, 0.28);
+}
+
+.developer-ath-ranking a.is-million-plus .developer-rank {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.developer-ath-ranking a.is-million-plus .developer-history-token strong,
+.developer-ath-ranking a.is-million-plus .developer-history-token small,
+.developer-ath-ranking a.is-million-plus .developer-ath-value small,
+.developer-ath-ranking a.is-million-plus .developer-ath-value strong,
+.developer-ath-ranking a.is-million-plus svg {
+  color: #fff;
+}
+
+.developer-ath-ranking a.is-million-plus .developer-ath-value strong {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .developer-basic-info {
   display: grid;
   gap: 9px;

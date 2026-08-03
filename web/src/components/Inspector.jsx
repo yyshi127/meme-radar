@@ -428,6 +428,7 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
                 {item.developerHistory.topTokens.map((token, index) => (
                   <a
                     key={token.address}
+                    className={index === 0 && Number(token.athMarketCap) > 1_000_000 ? "is-million-plus" : undefined}
                     href={gmgnTokenUrl(item.chain, token.address)}
                     target="_blank"
                     rel="noopener noreferrer"
