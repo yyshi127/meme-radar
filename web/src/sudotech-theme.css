@@ -656,6 +656,55 @@ td {
   transform: translateY(-1px);
 }
 
+.watch-remove-inline {
+  display: inline-flex;
+  flex: 0 0 auto;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  margin-left: auto;
+  padding: 0 7px;
+  border: 1px solid #ffc4cd;
+  border-radius: 7px;
+  background: #fff3f5;
+  color: #d93652;
+  font: inherit;
+  font-size: 8px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.watch-remove-inline svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 2;
+}
+
+.watch-remove-inline span {
+  overflow: visible;
+  color: inherit;
+  font-size: inherit;
+}
+
+.watch-remove-inline:hover,
+.watch-remove-inline:focus-visible {
+  border-color: transparent;
+  background: linear-gradient(135deg, #f35b69, #d93652);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.watch-remove-inline:disabled {
+  cursor: wait;
+  opacity: 0.55;
+  transform: none;
+}
+
 .trend-cell {
   min-width: 132px;
 }
@@ -2524,6 +2573,24 @@ td {
     height: 16px;
     fill: currentColor;
     stroke: currentColor;
+  }
+
+  .mobile-watch-remove {
+    width: 30px;
+    height: 30px;
+    min-height: 30px;
+    margin-left: 0;
+    padding: 0;
+    border-radius: 9px;
+  }
+
+  .mobile-watch-remove svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .mobile-watch-remove span {
+    display: none;
   }
 
   .mobile-score {

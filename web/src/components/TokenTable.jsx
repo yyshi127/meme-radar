@@ -1,7 +1,7 @@
 import { compact, creationAge, localTime, money, phaseLabels, shortAddress } from "../lib/format.js";
 import { gmgnAppIntentUrl, gmgnTokenUrl } from "../lib/gmgn.js";
 import { twitterContractSearchUrl } from "../lib/social.js";
-import { ExternalLinkIcon, SearchIcon, StarIcon } from "./Icons.jsx";
+import { ExternalLinkIcon, RemoveIcon, SearchIcon, StarIcon } from "./Icons.jsx";
 
 function Priority({ value }) {
   return <span className={`priority priority-${value.toLowerCase()}`}>{value}</span>;
@@ -179,7 +179,7 @@ function openOnKeyboard(event, item, onSelect) {
   }
 }
 
-export default function TokenTable({ items, selectedKey, watchedKeys, showWatchHits, onSelect }) {
+export default function TokenTable({ items, selectedKey, watchedKeys, showWatchHits, watchBusyKey, onSelect, onToggleWatch }) {
   return (
     <div className="table-region">
       <table className={showWatchHits ? "watch-hit-table" : ""}>
@@ -244,6 +244,23 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
                     >
                       <SearchIcon />
                     </a>
+                    {showWatchHits && (
+                      <button
+                        className="watch-remove-inline"
+                        type="button"
+                        disabled={watchBusyKey === item.key}
+                        aria-label={`从收藏移除 ${item.symbol}`}
+                        title="从收藏列表移除"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onToggleWatch(item);
+                        }}
+                        onKeyDown={(event) => event.stopPropagation()}
+                      >
+                        <RemoveIcon />
+                        <span>{watchBusyKey === item.key ? "移除中" : "移除"}</span>
+                      </button>
+                    )}
                   </div>
                   <span className="token-name" title={item.address}>{item.name !== "?" ? item.name : shortAddress(item.address)}</span>
                   <span className="token-meta">
@@ -319,7 +336,23 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
                 </div>
                 <span>{item.name !== "?" ? item.name : shortAddress(item.address)}</span>
               </div>
-              {watchedKeys.has(item.key) && <span className="mobile-watch-mark" title="已收藏"><StarIcon filled /></span>}
+              {showWatchHits ? (
+                <button
+                  className="watch-remove-inline mobile-watch-remove"
+                  type="button"
+                  disabled={watchBusyKey === item.key}
+                  aria-label={`从收藏移除 ${item.symbol}`}
+                  title="从收藏列表移除"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onToggleWatch(item);
+                  }}
+                  onKeyDown={(event) => event.stopPropagation()}
+                >
+                  <RemoveIcon />
+                  <span>{watchBusyKey === item.key ? "移除中" : "移除"}</span>
+                </button>
+              ) : watchedKeys.has(item.key) && <span className="mobile-watch-mark" title="已收藏"><StarIcon filled /></span>}
               <div className={`mobile-score score-${scoreTone(item.score)}`}><strong>{item.score}</strong><span>分</span></div>
             </div>
             <div className="mobile-token-tags">

@@ -240,7 +240,9 @@ export default function App() {
           selectedKey={selectedKey}
           watchedKeys={watchedKeys}
           showWatchHits={filters.priority === "saved"}
+          watchBusyKey={watchBusyKey}
           onSelect={selectCandidate}
+          onToggleWatch={toggleWatch}
         />
         <Inspector
           item={selected}
