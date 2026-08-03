@@ -725,27 +725,31 @@ td {
 }
 
 .market-cap-micro {
-  color: #0876a8;
-  border-color: #9ed7ec;
-  background: #e8f7fd;
+  color: #fff;
+  border-color: #0876a8;
+  background: #087fad;
+  box-shadow: 0 4px 10px rgba(8, 127, 173, 0.2);
 }
 
 .market-cap-small {
-  color: #06745f;
-  border-color: #9ed8ca;
-  background: #e8f8f3;
+  color: #fff;
+  border-color: #06745f;
+  background: #078870;
+  box-shadow: 0 4px 10px rgba(7, 136, 112, 0.2);
 }
 
 .market-cap-medium {
-  color: #aa6200;
-  border-color: #eac589;
-  background: #fff6df;
+  color: #fff;
+  border-color: #a85f00;
+  background: #bd6b00;
+  box-shadow: 0 4px 10px rgba(189, 107, 0, 0.2);
 }
 
 .market-cap-large {
-  color: #7440b7;
-  border-color: #cbb5e9;
-  background: #f4edff;
+  color: #fff;
+  border-color: #bd3832;
+  background: #d94c42;
+  box-shadow: 0 4px 10px rgba(217, 76, 66, 0.22);
 }
 
 .market-cap-unknown {
@@ -1589,6 +1593,32 @@ td {
   color: #946319;
   font-size: 8px;
   font-weight: 850;
+}
+
+.developer-history-section {
+  display: grid;
+  gap: 9px;
+  margin-bottom: 12px;
+  padding: 11px;
+  border: 1px solid #ead9a9;
+  border-radius: 11px;
+  background: linear-gradient(145deg, #fffdf7 0%, #fffaf0 100%);
+}
+
+.developer-history-heading {
+  margin-bottom: 0;
+}
+
+.developer-history-heading h4 {
+  margin: 0;
+  color: #7d5718;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.developer-history-section .holder-note,
+.developer-history-section .list-empty {
+  margin: 0;
 }
 
 .developer-ath-ranking {

@@ -299,39 +299,6 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
         <p className="calibration-note">{calibration?.definition || "达到足够的 6 小时成熟样本后才显示经验概率。"}</p>
       </section>
 
-      <section className="inspector-section developer-history-section">
-        <div className="section-heading-row">
-          <h3>开发者历史战绩</h3>
-          <span className="developer-history-total">
-            累计 {item.developerHistory?.countIsMinimum ? "≥" : ""}
-            {Number.isFinite(item.developerHistory?.totalCreatedCount) ? item.developerHistory.totalCreatedCount : "—"} 币
-          </span>
-        </div>
-        {item.developerHistory?.status === "ready" ? (
-          item.developerHistory.topTokens?.length ? (
-            <div className="developer-ath-ranking">
-              {item.developerHistory.topTokens.map((token, index) => (
-                <a
-                  key={token.address}
-                  href={gmgnTokenUrl(item.chain, token.address)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <span className={`developer-rank rank-${index + 1}`}>{index + 1}</span>
-                  <span className="developer-history-token">
-                    <strong>{token.symbol}</strong>
-                    <small>{token.migrated ? "已迁移" : "未迁移"}{token.cto ? " · CTO" : ""}</small>
-                  </span>
-                  <span className="developer-ath-value"><small>历史最高市值</small><strong>{money(token.athMarketCap)}</strong></span>
-                  <ExternalLinkIcon />
-                </a>
-              ))}
-            </div>
-          ) : <p className="list-empty">GMGN 未返回该开发者的其他历史代币。</p>
-        ) : <p className="list-empty">开发者地址或历史发币数据暂时不可用，将在后续扫描中重试。</p>}
-        <p className="holder-note">Top3 明确排除当前代币，并按 GMGN 历史最高市值排序；累计数量包含当前代币。</p>
-      </section>
-
       <section className="inspector-section">
         <h3>Top100 筹码结构</h3>
         {item.holderAnalysis?.status === "verified" ? (
@@ -352,17 +319,51 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
 
       <section className="inspector-section">
         <div className="section-heading-row">
-          <h3>开发者 / 团队钱包</h3>
+          <h3>开发者钱包与历史战绩</h3>
           <span className="holder-count">{item.holderAnalysis?.devWalletCount ?? "—"} 个</span>
+        </div>
+        {Array.isArray(item.holderAnalysis?.developerWallets) && (
+          <div className="chip-grid dev-summary-grid">
+            <div><span>当前仍持仓</span><strong>{item.holderAnalysis.devActiveWalletCount ?? 0} 个</strong></div>
+            <div><span>合计持仓</span><strong>{percent(item.holderAnalysis.devHoldingRate)}</strong></div>
+            <div><span>KOL / 名人标签</span><strong>{item.holderAnalysis.devRenownedWalletCount ?? 0} 个</strong></div>
+            <div><span>已实现利润</span><strong>{signedMoney(item.holderAnalysis.devRealizedProfit)}</strong></div>
+          </div>
+        )}
+        <div className="developer-history-section">
+          <div className="section-heading-row developer-history-heading">
+            <h4>历史战绩 · ATH Top3</h4>
+            <span className="developer-history-total">
+              累计 {item.developerHistory?.countIsMinimum ? "≥" : ""}
+              {Number.isFinite(item.developerHistory?.totalCreatedCount) ? item.developerHistory.totalCreatedCount : "—"} 币
+            </span>
+          </div>
+          {item.developerHistory?.status === "ready" ? (
+            item.developerHistory.topTokens?.length ? (
+              <div className="developer-ath-ranking">
+                {item.developerHistory.topTokens.map((token, index) => (
+                  <a
+                    key={token.address}
+                    href={gmgnTokenUrl(item.chain, token.address)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <span className={`developer-rank rank-${index + 1}`}>{index + 1}</span>
+                    <span className="developer-history-token">
+                      <strong>{token.symbol}</strong>
+                      <small>{token.migrated ? "已迁移" : "未迁移"}{token.cto ? " · CTO" : ""}</small>
+                    </span>
+                    <span className="developer-ath-value"><small>历史最高市值</small><strong>{money(token.athMarketCap)}</strong></span>
+                    <ExternalLinkIcon />
+                  </a>
+                ))}
+              </div>
+            ) : <p className="list-empty">GMGN 未返回该开发者的其他历史代币。</p>
+          ) : <p className="list-empty">开发者地址或历史发币数据暂时不可用，将在后续扫描中重试。</p>}
+          <p className="holder-note">Top3 明确排除当前代币，并按 GMGN 历史最高市值排序；累计数量包含当前代币。</p>
         </div>
         {Array.isArray(item.holderAnalysis?.developerWallets) ? (
           <>
-            <div className="chip-grid dev-summary-grid">
-              <div><span>当前仍持仓</span><strong>{item.holderAnalysis.devActiveWalletCount ?? 0} 个</strong></div>
-              <div><span>合计持仓</span><strong>{percent(item.holderAnalysis.devHoldingRate)}</strong></div>
-              <div><span>KOL / 名人标签</span><strong>{item.holderAnalysis.devRenownedWalletCount ?? 0} 个</strong></div>
-              <div><span>已实现利润</span><strong>{signedMoney(item.holderAnalysis.devRealizedProfit)}</strong></div>
-            </div>
             {item.holderAnalysis.devSockPuppet && (
               <div className="dev-risk-banner">发现 Dev 转出筹码仍在 Top100 钱包中，疑似换马甲继续控盘。</div>
             )}

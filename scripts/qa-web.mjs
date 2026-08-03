@@ -47,7 +47,9 @@ async function desktopQa() {
   assert.ok(await page.getByText("Top100 筹码结构").isVisible());
   assert.ok(await page.locator(".metric-grid").getByText("安全分").isVisible());
   assert.ok(await page.locator(".same-name-benchmark").isVisible());
-  assert.ok(await page.getByText("开发者历史战绩").isVisible());
+  const developerSection = page.locator(".inspector-section").filter({ hasText: "开发者钱包与历史战绩" });
+  assert.ok(await developerSection.isVisible());
+  assert.ok(await developerSection.locator(".developer-history-section").isVisible());
   assert.ok(await page.locator("tbody tr").first().locator(".developer-history-summary").isVisible());
 
   const addWatch = page.getByRole("button", { name: "加入收藏" });
