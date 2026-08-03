@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { compact, creationAge, localTime, money, phaseLabels, shortAddress } from "../lib/format.js";
 import { gmgnAppIntentUrl, gmgnTokenUrl } from "../lib/gmgn.js";
 import { twitterContractSearchUrl } from "../lib/social.js";
@@ -179,10 +180,22 @@ function openOnKeyboard(event, item, onSelect) {
   }
 }
 
+function useMobileLayout() {
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia("(max-width: 820px)").matches);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 820px)");
+    const update = (event) => setIsMobile(event.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  return isMobile;
+}
+
 export default function TokenTable({ items, selectedKey, watchedKeys, showWatchHits, watchBusyKey, onSelect, onToggleWatch }) {
+  const isMobile = useMobileLayout();
   return (
     <div className="table-region">
-      <table className={showWatchHits ? "watch-hit-table" : ""}>
+      {!isMobile && <table className={showWatchHits ? "watch-hit-table" : ""}>
         <thead>
           <tr>
             <th>优先级</th>
@@ -306,8 +319,8 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
             </tr>
           ))}
         </tbody>
-      </table>
-      <div className="mobile-token-list">
+      </table>}
+      {isMobile && <div className="mobile-token-list">
         {items.map((item) => (
           <article
             className={`mobile-token-card ${selectedKey === item.key ? "selected" : ""}`}
@@ -410,7 +423,7 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
             </div>
           </article>
         ))}
-      </div>
+      </div>}
       {!items.length && (
         <div className="empty-state">
           <strong>没有匹配的候选</strong>

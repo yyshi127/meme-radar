@@ -60,34 +60,65 @@ export default function App() {
   const refreshingRef = useRef(false);
   const hasReportRef = useRef(false);
   const reportFailureCountRef = useRef(0);
+  const reportGeneratedAtRef = useRef(null);
+  const statusSignatureRef = useRef("");
+  const watchlistSignatureRef = useRef("");
 
   const refresh = useCallback(async () => {
     if (refreshingRef.current) return;
     refreshingRef.current = true;
     try {
-      const results = await Promise.allSettled([
+      const [statusResult, watchlistResult] = await Promise.allSettled([
         api("/api/status"),
-        api("/api/report"),
         api("/api/watchlist")
       ]);
-      const [statusResult, reportResult, watchlistResult] = results;
-      if (statusResult.status === "fulfilled") setStatus(statusResult.value);
+      if (statusResult.status === "fulfilled") {
+        const signature = JSON.stringify(statusResult.value);
+        if (signature !== statusSignatureRef.current) {
+          statusSignatureRef.current = signature;
+          setStatus(statusResult.value);
+        }
+      }
+
+      const completedAt = statusResult.status === "fulfilled" ? statusResult.value?.lastCompletedAt : null;
+      const shouldFetchReport = !hasReportRef.current
+        || statusResult.status === "rejected"
+        || (completedAt && completedAt !== reportGeneratedAtRef.current);
+      let reportResult = { status: "skipped" };
+      if (shouldFetchReport) {
+        try {
+          reportResult = { status: "fulfilled", value: await api("/api/report") };
+        } catch (reason) {
+          reportResult = { status: "rejected", reason };
+        }
+      }
+
       if (reportResult.status === "fulfilled" && reportResult.value?.candidates) {
-        setReport(reportResult.value);
+        const generatedAt = reportResult.value.generatedAt || completedAt || null;
+        if (!hasReportRef.current || generatedAt !== reportGeneratedAtRef.current) {
+          reportGeneratedAtRef.current = generatedAt;
+          setReport(reportResult.value);
+        }
         hasReportRef.current = true;
         reportFailureCountRef.current = 0;
       } else if (reportResult.status === "rejected") {
         reportFailureCountRef.current += 1;
       }
       if (watchlistResult.status === "fulfilled" && watchlistResult.value?.items) {
-        setWatchlist(watchlistResult.value.items);
+        const signature = JSON.stringify(watchlistResult.value.items);
+        if (signature !== watchlistSignatureRef.current) {
+          watchlistSignatureRef.current = signature;
+          setWatchlist(watchlistResult.value.items);
+        }
       }
 
-      const failures = results.filter((result) => result.status === "rejected");
+      const attemptedResults = [statusResult, watchlistResult];
+      if (reportResult.status !== "skipped") attemptedResults.push(reportResult);
+      const failures = attemptedResults.filter((result) => result.status === "rejected");
       const unauthorized = failures.some((result) => result.reason?.status === 401);
       if (unauthorized) {
         setError({ message: "登录状态已失效，请重新连接雷达。", reconnect: true });
-      } else if (failures.length === results.length) {
+      } else if (failures.length === attemptedResults.length) {
         setError({ message: "暂时无法连接雷达，正在保留上次成功读取的数据。", reconnect: false });
       } else if (reportResult.status === "rejected" && (!hasReportRef.current || reportFailureCountRef.current >= 3)) {
         setError({ message: `雷达数据读取不稳定：${reportResult.reason.message}，正在显示上次数据。`, reconnect: false });
@@ -195,7 +226,9 @@ export default function App() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ chain: item.chain, address: item.address })
         });
-      setWatchlist(result.items || []);
+      const nextWatchlist = result.items || [];
+      watchlistSignatureRef.current = JSON.stringify(nextWatchlist);
+      setWatchlist(nextWatchlist);
       setError(null);
     } catch (requestError) {
       setError(`无法更新收藏：${requestError.message}`);

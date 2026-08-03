@@ -2331,6 +2331,18 @@ td {
     overflow: hidden;
   }
 
+  body {
+    background-attachment: scroll;
+  }
+
+  .topbar,
+  .filterbar,
+  .workspace,
+  .mobile-detail-toolbar {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
   .app-shell {
     display: block;
     width: 100%;
@@ -2486,6 +2498,7 @@ td {
     min-height: 0;
     border-radius: 18px;
     overflow: visible;
+    box-shadow: 0 10px 28px rgba(31, 78, 86, 0.055);
   }
 
   .table-region {
@@ -2512,7 +2525,10 @@ td {
     border: 1px solid var(--border-soft);
     border-radius: 14px;
     background: rgba(255, 255, 255, 0.94);
-    box-shadow: 0 8px 22px rgba(31, 78, 86, 0.055);
+    box-shadow: 0 3px 12px rgba(31, 78, 86, 0.045);
+    content-visibility: auto;
+    contain: layout paint style;
+    contain-intrinsic-size: 320px;
     cursor: pointer;
   }
 
