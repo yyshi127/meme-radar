@@ -28,7 +28,7 @@ async function desktopQa() {
     if (request.method() === "POST" && new URL(request.url()).pathname === "/api/scan") scanRequests += 1;
   });
   await page.goto(`${url}/discovery`, { waitUntil: "networkidle" });
-  if (await page.locator("tbody tr").count() === 0) await page.getByRole("button", { name: "全部", exact: true }).click();
+  if (await page.locator("tbody tr").count() === 0) await page.getByRole("button", { name: "收藏", exact: true }).click();
   await page.locator("tbody tr").first().waitFor({ timeout: 15_000 });
 
   assert.equal(await page.title(), "猎星榜 · Meme Radar");
@@ -43,11 +43,21 @@ async function desktopQa() {
   const symbol = (await page.locator("tbody tr").first().locator(".token-cell strong").textContent()).trim();
   await page.locator("tbody tr").first().click();
   assert.equal((await page.locator(".inspector h2").textContent()).trim(), symbol);
-  assert.ok(await page.getByText("验证与历史置信度").isVisible());
-  assert.ok(await page.getByText("Top100 筹码结构").isVisible());
+  const detailSections = await page.locator(".detail-section > .detail-section-heading .detail-section-title h3, .evidence-details > summary .detail-section-title strong").allTextContents();
+  assert.deepEqual(detailSections.map((text) => text.trim()), [
+    "决策总览",
+    "Rug 与控盘风险",
+    "机会与叙事",
+    "资金信号",
+    "开发者可信度",
+    "历史验证与置信度",
+    "入选依据与数据来源"
+  ]);
+  assert.ok(await page.getByText("历史验证与置信度").isVisible());
+  assert.ok(await page.getByText("Top100 筹码与控盘指标").isVisible());
   assert.ok(await page.locator(".metric-grid").getByText("安全分").isVisible());
-  assert.ok(await page.locator(".same-name-benchmark").isVisible());
-  const developerSection = page.locator(".inspector-section").filter({ hasText: "开发者钱包与历史战绩" });
+  assert.ok(await page.locator(".opportunity-detail .same-name-benchmark").isVisible());
+  const developerSection = page.locator(".developer-detail").filter({ hasText: "开发者可信度" });
   assert.ok(await developerSection.isVisible());
   assert.ok(await developerSection.locator(".developer-history-section").isVisible());
   assert.ok(await page.locator("tbody tr").first().locator(".developer-history-summary").isVisible());
@@ -126,15 +136,14 @@ async function desktopQa() {
   await page.waitForTimeout(150);
   assert.match(await copyButton.textContent(), /已复制/);
 
-  await page.getByRole("button", { name: "重点", exact: true }).click();
+  await page.getByRole("button", { name: "收藏", exact: true }).click();
   await page.locator("tbody tr").first().waitFor();
   await page.locator("tbody tr").first().click();
   await page.screenshot({ path: path.join(root, "output", "web-dashboard-desktop.png"), fullPage: true });
 
   const scanButton = page.getByRole("button", { name: /立即扫描|扫描中/ });
-  if (await scanButton.isEnabled()) await scanButton.click();
-  await page.waitForTimeout(250);
-  assert.match(await scanButton.textContent(), /扫描中/);
+  assert.ok(await scanButton.isVisible());
+  assert.equal(scanRequests, 0, "页面验收不应触发真实扫描");
   assert.deepEqual(pageErrors, [], "桌面页面不应出现运行时错误");
   await context.close();
   return { initialRows, selectedSymbol: symbol };
@@ -144,7 +153,7 @@ async function mobileQa() {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "zh-CN" });
   const page = await context.newPage();
   await page.goto(`${url}/verified`, { waitUntil: "networkidle" });
-  if (await page.locator(".mobile-token-card").count() === 0) await page.getByRole("button", { name: "全部", exact: true }).click();
+  if (await page.locator(".mobile-token-card").count() === 0) await page.getByRole("button", { name: "收藏", exact: true }).click();
   await page.locator(".mobile-token-card").first().waitFor({ timeout: 15_000 });
   const mobileScrollWidth = await page.locator("body").evaluate((body) => body.scrollWidth);
   if (mobileScrollWidth > 390) {

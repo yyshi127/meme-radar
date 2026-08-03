@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { CheckIcon, CopyIcon, ExternalLinkIcon, StarIcon } from "./Icons.jsx";
-import { compact, familyLabels, localTime, money, phaseLabels } from "../lib/format.js";
+import { compact, creationAge, familyLabels, localTime, money, phaseLabels } from "../lib/format.js";
 import { gmgnAppIntentUrl, gmgnTokenUrl } from "../lib/gmgn.js";
 import { twitterProfileUrl } from "../lib/social.js";
 
@@ -160,6 +160,7 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
     sourceLabel: "待扫描",
     completeness: 0
   };
+  const riskItems = [...(item.hardStops || []), ...(item.alertBlocks || []), ...(item.risks || [])];
   return (
     <aside className="inspector">
       <div className="mobile-detail-toolbar">
@@ -189,19 +190,12 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
         </div>
       </div>
 
-      <SameNameBenchmark item={item} />
-
       {item.isLive === false && (
         <div className="stale-watch" role="status">本轮扫描未命中，正在保留收藏时的最后快照。</div>
       )}
 
-      <div className={`strategy-banner strategy-banner-${page.key}`} role="note">
-        <strong>{page.key === "discovery" ? "猎星榜 · early-v3" : page.name}</strong>
-        <span>{page.key === "discovery" ? "硬过滤：持币地址 >300、市值 $10k–$2M；Rug 风险 ≥0.10 或其他明确跑路信号一票否决，安全数据未完成时仅观察。" : "已将关键风险缺失、关联控盘与高 Bundler 纳入过滤。"}</span>
-      </div>
-
       <div className="contract-block">
-        <span>{item.chain.toUpperCase()} · {phaseLabels[item.phase] || item.phase}</span>
+        <span>{item.chain.toUpperCase()} · {phaseLabels[item.phase] || item.phase} · {creationAge(item.creationTimestamp)}</span>
         <code title={item.address}>{item.address}</code>
         <button type="button" onClick={copyAddress} aria-label="复制合约地址">
           {copied ? <CheckIcon /> : <CopyIcon />}{copied ? "已复制" : "复制"}
@@ -222,105 +216,156 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
         )}
       </div>
 
-      <div className="metric-grid">
-        <div className="metric-market"><span>市值</span><strong>{money(item.marketCap)}</strong></div>
-        <div className="metric-liquidity"><span>流动性</span><strong>{money(item.liquidity)}</strong></div>
-        <div className={`safety-metric safety-${item.safetyStatus || "pending"}`}>
-          <span>抗跑路安全分</span>
-          <strong>{Number.isFinite(item.safetyScore) ? `${item.safetyScore}/100` : "待评估"}</strong>
-          <small>{safetyStatus(item.safetyStatus)}</small>
-        </div>
-        <div className={`metric-completeness completeness-${completenessTone(item.dataCompleteness)}`}>
-          <span>数据完整度</span>
-          <strong>{Number.isFinite(item.dataCompleteness) ? `${item.dataCompleteness}%` : "—"}</strong>
-        </div>
-        {watched && (
-          <div className={`watch-hit-metric hit-${hitTone(item.watchHitCount || 0)}`}>
-            <span>累计命中</span>
-            <strong>{item.watchHitCount || 0} 轮</strong>
-            <small>收藏后进入 ALERT / WATCH 才累计</small>
+      <section className="detail-section decision-section" aria-labelledby="decision-title">
+        <div className="detail-section-heading">
+          <div className="detail-section-title">
+            <span className="detail-section-order">01</span>
+            <div><h3 id="decision-title">决策总览</h3><small>先判断是否值得继续研究</small></div>
           </div>
-        )}
-      </div>
-
-      <div className="key-signal-strip" aria-label="关键指标速览">
-        <span className={`key-signal key-signal-smart ${smartHolderCount > 0 ? "is-active" : "is-empty"}`}>
-          聪明钱 <strong>{Number.isFinite(smartHolderCount) ? compact(smartHolderCount) : "—"}</strong>
-        </span>
-        <span className={`key-signal key-signal-kol ${kolHolderCount > 0 ? "is-active" : "is-empty"}`}>
-          KOL <strong>{Number.isFinite(kolHolderCount) ? compact(kolHolderCount) : "—"}</strong>
-        </span>
-        <span className={`key-signal key-signal-evidence ${(item.evidenceFamilyCount || 0) >= 2 ? "is-active" : "is-empty"}`}>
-          独立信号 <strong>{item.evidenceFamilyCount || 0}</strong>
-        </span>
-        <span className="key-signal key-signal-holder is-active">
-          持币地址 <strong>{compact(item.holderCount)}</strong>
-        </span>
-      </div>
-
-      <section className={`narrative-card narrative-card-${narrative.categoryKey}`}>
-        <div className="section-heading-row">
-          <h3>代币叙事</h3>
-          <div className="narrative-card-tags">
-            <span className={`narrative-badge narrative-${narrative.categoryKey}`}>{narrative.category}</span>
-            <span className={`narrative-source source-${narrative.source}`}>{narrative.sourceLabel}</span>
+          <span className={`priority priority-${item.priority.toLowerCase()}`}>{item.priority}</span>
+        </div>
+        <div className="metric-grid decision-metric-grid">
+          <div className={`safety-metric safety-${item.safetyStatus || "pending"}`}>
+            <span>抗跑路安全分</span>
+            <strong>{Number.isFinite(item.safetyScore) ? `${item.safetyScore}/100` : "待评估"}</strong>
+            <small>{safetyStatus(item.safetyStatus)}</small>
+          </div>
+          <div className="metric-market"><span>市值</span><strong>{money(item.marketCap)}</strong></div>
+          <div className="metric-liquidity"><span>流动性</span><strong>{money(item.liquidity)}</strong></div>
+          <div className={`metric-completeness completeness-${completenessTone(item.dataCompleteness)}`}>
+            <span>数据完整度</span>
+            <strong>{Number.isFinite(item.dataCompleteness) ? `${item.dataCompleteness}%` : "—"}</strong>
           </div>
         </div>
-        <p>{narrative.summary}</p>
-        <div className="narrative-completeness">
-          <span>叙事资料完整度</span>
-          <div><i style={{ "--narrative-completeness": `${narrative.completeness || 0}%` }} /></div>
-          <strong>{narrative.completeness || 0}%</strong>
+        <div className="key-signal-strip" aria-label="关键指标速览">
+          <span className={`key-signal key-signal-smart ${smartHolderCount > 0 ? "is-active" : "is-empty"}`}>
+            聪明钱 <strong>{Number.isFinite(smartHolderCount) ? compact(smartHolderCount) : "—"}</strong>
+          </span>
+          <span className={`key-signal key-signal-kol ${kolHolderCount > 0 ? "is-active" : "is-empty"}`}>
+            KOL <strong>{Number.isFinite(kolHolderCount) ? compact(kolHolderCount) : "—"}</strong>
+          </span>
+          <span className={`key-signal key-signal-evidence ${(item.evidenceFamilyCount || 0) >= 2 ? "is-active" : "is-empty"}`}>
+            独立信号 <strong>{item.evidenceFamilyCount || 0}</strong>
+          </span>
+          <span className="key-signal key-signal-holder is-active">
+            持币地址 <strong>{compact(item.holderCount)}</strong>
+          </span>
         </div>
-        <small>
-          {narrative.source === "project"
-            ? "该内容来自项目方元数据，仅代表其自述，不代表真实性或投资价值。"
-            : "当前为有限资料下的主题线索，不用于证明项目真实性或上涨概率。"}
-        </small>
       </section>
 
-      <section className="inspector-section evidence-summary">
-        <div className="section-heading-row">
-          <h3>验证与历史置信度</h3>
+      <section className={`detail-section risk-detail risk-detail-${item.safetyStatus || "pending"}`} aria-labelledby="risk-title">
+        <div className="detail-section-heading">
+          <div className="detail-section-title">
+            <span className="detail-section-order">02</span>
+            <div><h3 id="risk-title">Rug 与控盘风险</h3><small>风险优先，数据不足不等于安全</small></div>
+          </div>
+          <span className={`risk-summary-badge risk-summary-${item.safetyStatus || "pending"}`}>{safetyStatus(item.safetyStatus)}</span>
+        </div>
+        <div className="risk-list-panel">
+          <List items={riskItems} empty="当前数据未发现已知硬风险；这不等于绝对安全，仍需复核合约和退出流动性。" tone="risk" />
+        </div>
+        <div className="subsection-heading">
+          <h4>Top100 筹码与控盘指标</h4>
           <span className={`verification verification-${item.verificationStatus || "pending"}`}>{scoreStatus(item.verificationStatus)}</span>
         </div>
-        <div className="confidence-grid">
-          <div>
-            <span>校准概率</span>
-            <strong>{Number.isFinite(item.calibratedProbability) ? percent(item.calibratedProbability) : "暂不提供"}</strong>
-            <small>{item.calibrationSamples || 0} 个同链同分段成熟样本</small>
-          </div>
-          <div>
-            <span>当前历史表现</span>
-            <strong>{Number.isFinite(item.history?.currentReturnPct) ? `${item.history.currentReturnPct.toFixed(1)}%` : "采集中"}</strong>
-            <small>{item.history?.observations || 0} 次价格观测</small>
-          </div>
-        </div>
-        <p className="calibration-note">{calibration?.definition || "达到足够的 6 小时成熟样本后才显示经验概率。"}</p>
-      </section>
-
-      <section className="inspector-section">
-        <h3>Top100 筹码结构</h3>
         {item.holderAnalysis?.status === "verified" ? (
-          <div className="chip-grid">
+          <div className="chip-grid risk-chip-grid">
             <div><span>Top10</span><strong>{percent(item.holderAnalysis.top10Rate)}</strong></div>
             <div><span>最大普通钱包</span><strong>{percent(item.holderAnalysis.largestWalletRate)}</strong></div>
             <div><span>Bundler</span><strong>{percent(item.holderAnalysis.bundlerRate)}</strong></div>
             <div><span>同源关联</span><strong>{percent(item.holderAnalysis.relatedRate)}</strong></div>
             <div><span>同步注资</span><strong>{percent(item.holderAnalysis.coordinatedRate)}</strong></div>
             <div><span>风险钱包</span><strong>{percent(item.holderAnalysis.riskWalletRate)}</strong></div>
-            <div><span>当前聪明钱</span><strong>{item.holderAnalysis.currentSmartHolderCount ?? "—"}</strong></div>
-            <div><span>当前 KOL</span><strong>{item.holderAnalysis.currentKolHolderCount ?? "—"}</strong></div>
+            <div><span>开发者合计持仓</span><strong>{percent(item.holderAnalysis.devHoldingRate)}</strong></div>
+            <div><span>开发者钱包</span><strong>{item.holderAnalysis.devWalletCount ?? "—"} 个</strong></div>
           </div>
-        ) : (
-          <p className="list-empty">{item.deepAnalysisError || "当前候选尚未完成 Top100 持仓关联尽调；未验证时不会进入 ALERT。"}</p>
+        ) : <p className="list-empty">{item.deepAnalysisError || "当前候选尚未完成 Top100 持仓关联尽调；未验证时不会进入 ALERT。"}</p>}
+        {item.holderAnalysis?.devSockPuppet && (
+          <div className="dev-risk-banner">发现 Dev 转出筹码仍在 Top100 钱包中，疑似换马甲继续控盘。</div>
         )}
       </section>
 
-      <section className="inspector-section">
-        <div className="section-heading-row">
-          <h3>开发者钱包与历史战绩</h3>
-          <span className="holder-count">{item.holderAnalysis?.devWalletCount ?? "—"} 个</span>
+      <section className="detail-section opportunity-detail" aria-labelledby="opportunity-title">
+        <div className="detail-section-heading">
+          <div className="detail-section-title">
+            <span className="detail-section-order">03</span>
+            <div><h3 id="opportunity-title">机会与叙事</h3><small>判断题材空间与同名市场参照</small></div>
+          </div>
+        </div>
+        <div className="opportunity-layout">
+          <section className={`narrative-card narrative-card-${narrative.categoryKey}`}>
+            <div className="section-heading-row">
+              <h3>代币叙事</h3>
+              <div className="narrative-card-tags">
+                <span className={`narrative-badge narrative-${narrative.categoryKey}`}>{narrative.category}</span>
+                <span className={`narrative-source source-${narrative.source}`}>{narrative.sourceLabel}</span>
+              </div>
+            </div>
+            <p>{narrative.summary}</p>
+            <div className="narrative-completeness">
+              <span>叙事资料完整度</span>
+              <div><i style={{ "--narrative-completeness": `${narrative.completeness || 0}%` }} /></div>
+              <strong>{narrative.completeness || 0}%</strong>
+            </div>
+            <small>
+              {narrative.source === "project"
+                ? "该内容来自项目方元数据，仅代表其自述，不代表真实性或投资价值。"
+                : "当前为有限资料下的主题线索，不用于证明项目真实性或上涨概率。"}
+            </small>
+          </section>
+          <SameNameBenchmark item={item} />
+        </div>
+      </section>
+
+      <section className="detail-section funding-detail" aria-labelledby="funding-title">
+        <div className="detail-section-heading">
+          <div className="detail-section-title">
+            <span className="detail-section-order">04</span>
+            <div><h3 id="funding-title">资金信号</h3><small>当前持有 KOL 的仓位与成本</small></div>
+          </div>
+          <span className="holder-count">{item.holderAnalysis?.currentKolHolderCount ?? "—"} 个 KOL</span>
+        </div>
+        {Number.isFinite(kolAverageCost) && kolAverageCost > 0 && (
+          <div className="kol-cost-grid">
+            <div><span>KOL 加权成本</span><strong>{tokenPrice(kolAverageCost)}</strong></div>
+            <div><span>当前价格</span><strong>{tokenPrice(item.price)}</strong></div>
+            <div><span>相对 KOL 成本</span><strong className={Number.isFinite(kolCostGap) ? (kolCostGap >= 0 ? "positive-value" : "negative-value") : ""}>{signedPercent(kolCostGap)}</strong></div>
+            <div><span>估算建仓市值</span><strong>{money(kolEntryMarketCap)}</strong></div>
+            <div><span>成本覆盖率</span><strong>{percent(item.holderAnalysis.currentKolCostCoverage)}</strong></div>
+          </div>
+        )}
+        {Array.isArray(item.holderAnalysis?.currentKolHolders) ? (
+          item.holderAnalysis.currentKolHolders.length ? (
+            <div className="holder-list">
+              {item.holderAnalysis.currentKolHolders.map((holder) => (
+                <div className="holder-row" key={holder.address}>
+                  <div>
+                    <strong>{holder.name || shortWallet(holder.address)}</strong>
+                    <span>{holder.twitterUsername ? `@${holder.twitterUsername}` : shortWallet(holder.address)}</span>
+                  </div>
+                  <div>
+                    <strong>{holderPercent(holder.amountPercentage)}</strong>
+                    <span>均价 {tokenPrice(holder.averageCost)}</span>
+                    <span>浮盈 {signedPercent(holder.unrealizedPnl)} · 买 {holder.buyTxCount} / 卖 {holder.sellTxCount}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : <p className="list-empty">未发现当前余额大于 0 的 GMGN KOL 钱包。</p>
+        ) : <p className="list-empty">等待下一轮深度扫描生成 KOL 持仓名单。</p>}
+        <p className="holder-note">
+          加权成本按当前持仓数量计算；转账或成本未知的仓位不参与成本计算，并反映在覆盖率中。已清仓 KOL 不计入。
+          {item.holderAnalysis?.currentKolCoverage === "top100-only" ? " 当前名单仅覆盖 Top100，可能不完整。" : ""}
+        </p>
+      </section>
+
+      <section className="detail-section developer-detail" aria-labelledby="developer-title">
+        <div className="detail-section-heading">
+          <div className="detail-section-title">
+            <span className="detail-section-order">05</span>
+            <div><h3 id="developer-title">开发者可信度</h3><small>钱包行为与历史发币战绩</small></div>
+          </div>
+          <span className="holder-count">{item.holderAnalysis?.devWalletCount ?? "—"} 个钱包</span>
         </div>
         {Array.isArray(item.holderAnalysis?.developerWallets) && (
           <div className="chip-grid dev-summary-grid">
@@ -364,9 +409,6 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
         </div>
         {Array.isArray(item.holderAnalysis?.developerWallets) ? (
           <>
-            {item.holderAnalysis.devSockPuppet && (
-              <div className="dev-risk-banner">发现 Dev 转出筹码仍在 Top100 钱包中，疑似换马甲继续控盘。</div>
-            )}
             {item.holderAnalysis.developerWallets.length ? (
               <div className="dev-wallet-list">
                 {item.holderAnalysis.developerWallets.map((wallet) => (
@@ -404,66 +446,65 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
         ) : <p className="list-empty">等待下一轮深度扫描生成开发者信息。</p>}
       </section>
 
-      <section className="inspector-section">
-        <div className="section-heading-row">
-          <h3>当前持有的 KOL</h3>
-          <span className="holder-count">{item.holderAnalysis?.currentKolHolderCount ?? "—"} 个</span>
-        </div>
-        {Number.isFinite(kolAverageCost) && kolAverageCost > 0 && (
-          <div className="kol-cost-grid">
-            <div><span>KOL 加权成本</span><strong>{tokenPrice(kolAverageCost)}</strong></div>
-            <div><span>当前价格</span><strong>{tokenPrice(item.price)}</strong></div>
-            <div><span>相对 KOL 成本</span><strong className={Number.isFinite(kolCostGap) ? (kolCostGap >= 0 ? "positive-value" : "negative-value") : ""}>{signedPercent(kolCostGap)}</strong></div>
-            <div><span>估算建仓市值</span><strong>{money(kolEntryMarketCap)}</strong></div>
-            <div><span>成本覆盖率</span><strong>{percent(item.holderAnalysis.currentKolCostCoverage)}</strong></div>
+      <section className="detail-section evidence-summary" aria-labelledby="confidence-title">
+        <div className="detail-section-heading">
+          <div className="detail-section-title">
+            <span className="detail-section-order">06</span>
+            <div><h3 id="confidence-title">历史验证与置信度</h3><small>观察记录，不等同于未来收益概率</small></div>
           </div>
-        )}
-        {Array.isArray(item.holderAnalysis?.currentKolHolders) ? (
-          item.holderAnalysis.currentKolHolders.length ? (
-            <div className="holder-list">
-              {item.holderAnalysis.currentKolHolders.map((holder) => (
-                <div className="holder-row" key={holder.address}>
-                  <div>
-                    <strong>{holder.name || shortWallet(holder.address)}</strong>
-                    <span>{holder.twitterUsername ? `@${holder.twitterUsername}` : shortWallet(holder.address)}</span>
-                  </div>
-                  <div>
-                    <strong>{holderPercent(holder.amountPercentage)}</strong>
-                    <span>均价 {tokenPrice(holder.averageCost)}</span>
-                    <span>浮盈 {signedPercent(holder.unrealizedPnl)} · 买 {holder.buyTxCount} / 卖 {holder.sellTxCount}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : <p className="list-empty">未发现当前余额大于 0 的 GMGN KOL 钱包。</p>
-        ) : <p className="list-empty">等待下一轮深度扫描生成 KOL 持仓名单。</p>}
-        <p className="holder-note">
-          加权成本按当前持仓数量计算；转账或成本未知的仓位不参与成本计算，并反映在覆盖率中。已清仓 KOL 不计入。
-          {item.holderAnalysis?.currentKolCoverage === "top100-only" ? " 当前名单仅覆盖 Top100，可能不完整。" : ""}
-        </p>
-      </section>
-
-      <section className="inspector-section">
-        <h3>为什么进入雷达</h3>
-        <List items={item.reasons} empty="暂无强证据。" tone="positive" />
-      </section>
-
-      <section className="inspector-section">
-        <h3>风险与硬过滤</h3>
-        <List items={[...(item.hardStops || []), ...(item.alertBlocks || []), ...(item.risks || [])]} empty="当前数据未发现已知硬风险，仍需人工尽调。" tone="risk" />
-      </section>
-
-      <section className="inspector-section">
-        <h3>信号来源</h3>
-        <div className="source-list">
-          {(item.evidenceFamilies || []).map((family) => <span key={family}>{familyLabels[family] || family}</span>)}
+          <span className={`verification verification-${item.verificationStatus || "pending"}`}>{scoreStatus(item.verificationStatus)}</span>
         </div>
+        <div className="confidence-grid">
+          <div>
+            <span>校准概率</span>
+            <strong>{Number.isFinite(item.calibratedProbability) ? percent(item.calibratedProbability) : "暂不提供"}</strong>
+            <small>{item.calibrationSamples || 0} 个同链同分段成熟样本</small>
+          </div>
+          <div>
+            <span>当前历史表现</span>
+            <strong>{Number.isFinite(item.history?.currentReturnPct) ? `${item.history.currentReturnPct.toFixed(1)}%` : "采集中"}</strong>
+            <small>{item.history?.observations || 0} 次价格观测</small>
+          </div>
+          {watched && (
+            <div className={`confidence-watch-hit hit-${hitTone(item.watchHitCount || 0)}`}>
+              <span>收藏后累计命中</span>
+              <strong>{item.watchHitCount || 0} 轮</strong>
+              <small>每轮进入 ALERT / WATCH 才累计</small>
+            </div>
+          )}
+        </div>
+        <p className="calibration-note">{calibration?.definition || "达到足够的 6 小时成熟样本后才显示经验概率。"}</p>
       </section>
 
-      <div className="timeline-grid">
-        <div><span>首次发现</span><strong>{localTime(item.firstSeen)}</strong></div>
-        <div><span>最近出现</span><strong>{localTime(item.lastSeen)}</strong></div>
-      </div>
+      <details className="detail-section evidence-details">
+        <summary>
+          <span className="detail-section-title">
+            <span className="detail-section-order">07</span>
+            <span><strong>入选依据与数据来源</strong><small>展开查看策略、证据与扫描时间</small></span>
+          </span>
+          <span className="details-chevron" aria-hidden="true">⌄</span>
+        </summary>
+        <div className="evidence-details-content">
+          <div className="evidence-subsection">
+            <h4>为什么进入雷达</h4>
+            <List items={item.reasons} empty="暂无强证据。" tone="positive" />
+          </div>
+          <div className={`strategy-banner strategy-banner-${page.key}`} role="note">
+            <strong>{page.key === "discovery" ? "猎星榜 · early-v3" : page.name}</strong>
+            <span>{page.key === "discovery" ? "硬过滤：持币地址 >300、市值 $10k–$2M；Rug 风险 ≥0.10 或其他明确跑路信号一票否决，安全数据未完成时仅观察。" : "已将关键风险缺失、关联控盘与高 Bundler 纳入过滤。"}</span>
+          </div>
+          <div className="evidence-subsection">
+            <h4>信号来源</h4>
+            <div className="source-list">
+              {(item.evidenceFamilies || []).map((family) => <span key={family}>{familyLabels[family] || family}</span>)}
+            </div>
+          </div>
+          <div className="timeline-grid">
+            <div><span>首次发现</span><strong>{localTime(item.firstSeen)}</strong></div>
+            <div><span>最近出现</span><strong>{localTime(item.lastSeen)}</strong></div>
+          </div>
+        </div>
+      </details>
       <p className="disclaimer">研究优先级，不是买入建议。任何交易前都应再次检查合约、池子和退出流动性。</p>
     </aside>
   );
