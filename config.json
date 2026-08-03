@@ -1,6 +1,6 @@
 {
   "chains": ["sol", "bsc"],
-  "watchIntervalSeconds": 300,
+  "watchIntervalSeconds": 600,
   "clusterWindowMinutes": 30,
   "alertScore": 70,
   "watchScore": 50,
@@ -15,7 +15,7 @@
   "sameNameCacheSeconds": 300,
   "sameNameFailureCacheSeconds": 1800,
   "klineConcurrency": 3,
-  "klineCacheSeconds": 240,
+  "klineCacheSeconds": 900,
   "outcomeSampleLimit": 6,
   "calibrationMinSamples": 50
 }

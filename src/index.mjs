@@ -1,13 +1,14 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { checkConfig, gmgn } from "./gmgn.mjs";
+import { checkConfig, getGmgnRateLimitStatus, gmgn, isGmgnRateLimitError } from "./gmgn.mjs";
 import { enrichDeepCandidates } from "./deep-analysis.mjs";
 import { enrichDeveloperHistories } from "./developer-history.mjs";
 import { enrichLifetimeTrends } from "./lifetime-trend.mjs";
 import { enrichSameNameLeaders } from "./same-name.mjs";
 import { radarStore } from "./store.mjs";
 import { refreshWatchMarkets } from "./watch-market.mjs";
+import { buildStaleReport, reportHasCandidates } from "./report-resilience.mjs";
 import {
   cleanText,
   escapeMarkdown,
@@ -26,6 +27,8 @@ const configPath = path.join(root, "config.json");
 const dataDir = path.join(root, "data");
 const outputDir = path.join(root, "output");
 const statePath = path.join(dataDir, "state.json");
+const latestPath = path.join(outputDir, "latest.json");
+const lastSuccessPath = path.join(outputDir, "last-success.json");
 
 async function jsonFile(file, fallback) {
   try { return JSON.parse(await readFile(file, "utf8")); }
@@ -39,6 +42,7 @@ async function safeFeed(label, args, errors, notices) {
       notices.push(...result.notices.map((notice) => `${label}: ${notice}`));
       return result.data;
     } catch (error) {
+      if (isGmgnRateLimitError(error)) throw error;
       const detail = String(error.stderr || error.stdout || error.message || "unknown error");
       const transient = /ConnectTimeout|Connect Timeout|ECONNRESET|fetch failed/i.test(detail) && !/429|RATE_LIMIT/i.test(detail);
       if (attempt === 0 && transient) {
@@ -78,14 +82,17 @@ async function sampleTrackedOutcomes(now, currentKeys, config, notices) {
 }
 
 async function collectChain(book, chain, config, errors, notices) {
+  let successfulFeeds = 0;
   const cutoff = Math.floor(Date.now() / 1000) - config.clusterWindowMinutes * 60;
   const trending = await safeFeed(`${chain}/trending`, ["market", "trending", "--chain", chain, "--interval", "1m", "--limit", "80", "--raw"], errors, notices);
+  successfulFeeds += Number(trending !== null);
   for (const row of rows(trending?.data?.rank)) {
     const candidate = getCandidate(book, chain, row.address);
     mergeMarketRow(candidate, row, "trending");
   }
 
   const hot = await safeFeed(`${chain}/hot-search`, ["market", "hot-searches", "--chain", chain, "--interval", "1m", "--limit", "80", "--raw"], errors, notices);
+  successfulFeeds += Number(hot !== null);
   for (const block of rows(hot)) {
     for (const row of rows(block.tokens)) {
       const candidate = getCandidate(book, chain, row.address);
@@ -94,6 +101,7 @@ async function collectChain(book, chain, config, errors, notices) {
   }
 
   const trenches = await safeFeed(`${chain}/trenches`, ["market", "trenches", "--chain", chain, "--type", "new_creation", "--type", "near_completion", "--filter-preset", "safe", "--limit", "80", "--raw"], errors, notices);
+  successfulFeeds += Number(trenches !== null);
   for (const row of rows(trenches?.new_creation || trenches?.data?.new_creation)) {
     const candidate = getCandidate(book, chain, row.address);
     mergeMarketRow(candidate, row, "new-creation", "new-creation");
@@ -105,6 +113,7 @@ async function collectChain(book, chain, config, errors, notices) {
 
   for (const type of [12, 20]) {
     const signal = await safeFeed(`${chain}/signal-${type}`, ["market", "signal", "--chain", chain, "--signal-type", String(type), "--raw"], errors, notices);
+    successfulFeeds += Number(signal !== null);
     for (const event of rows(signal)) {
       if (Number(event.trigger_at || 0) < cutoff) continue;
       const candidate = getCandidate(book, chain, event.token_address);
@@ -114,12 +123,14 @@ async function collectChain(book, chain, config, errors, notices) {
 
   for (const [kind, subcommand] of [["smart", "smartmoney"], ["kol", "kol"]]) {
     const trades = await safeFeed(`${chain}/${subcommand}`, ["track", subcommand, "--chain", chain, "--side", "buy", "--limit", "100", "--raw"], errors, notices);
+    successfulFeeds += Number(trades !== null);
     for (const trade of rows(trades?.list)) {
       if (Number(trade.timestamp || 0) < cutoff || trade.side !== "buy") continue;
       const candidate = getCandidate(book, chain, trade.base_address);
       mergeTrade(candidate, trade, kind);
     }
   }
+  return successfulFeeds;
 }
 
 function money(value) {
@@ -161,13 +172,57 @@ function markdown(result, top) {
   return `${lines.join("\n")}\n`;
 }
 
+async function persistStaleReport(config, errors, notices, reason, retryAt = null) {
+  const saved = await jsonFile(lastSuccessPath, null);
+  const latest = await jsonFile(latestPath, null);
+  const previous = reportHasCandidates(saved) ? saved : reportHasCandidates(latest) ? latest : saved || latest;
+  const result = buildStaleReport(previous, {
+    chains: config.chains,
+    errors,
+    notices,
+    reason,
+    retryAt
+  });
+  await mkdir(outputDir, { recursive: true });
+  await writeFile(latestPath, JSON.stringify(result, null, 2));
+  await writeFile(path.join(outputDir, "latest.md"), markdown(result, config.top));
+  return result;
+}
+
+function recordRateLimitError(errors, error) {
+  const status = getGmgnRateLimitStatus();
+  const retryAt = error?.retryAt || status.retryAt;
+  errors.push(`GMGN 限流熔断已启动，本轮停止请求；${retryAt || "冷却结束"} 后自动重试`);
+  return retryAt;
+}
+
+async function preserveIfRateLimited(config, errors, notices) {
+  const status = getGmgnRateLimitStatus();
+  if (!status.blocked) return null;
+  recordRateLimitError(errors, { retryAt: status.retryAt });
+  return persistStaleReport(config, errors, notices, "gmgn_rate_limited", status.retryAt);
+}
+
 export async function scan(config, options = {}) {
   await checkConfig();
   const book = new Map();
   const errors = [];
   const notices = [];
-  for (const chain of config.chains) await collectChain(book, chain, config, errors, notices);
+  let successfulFeeds = 0;
+  try {
+    for (const chain of config.chains) successfulFeeds += await collectChain(book, chain, config, errors, notices);
+  } catch (error) {
+    if (!isGmgnRateLimitError(error)) throw error;
+    const retryAt = recordRateLimitError(errors, error);
+    return persistStaleReport(config, errors, notices, "gmgn_rate_limited", retryAt);
+  }
+  if (!successfulFeeds) {
+    errors.push("GMGN 基础数据源全部失败，本轮保留上次成功榜单");
+    return persistStaleReport(config, errors, notices, "all_base_feeds_failed");
+  }
   const watchMarketsRefreshed = await refreshWatchMarkets(book, { gmgn, store: radarStore, notices });
+  const watchRateLimited = await preserveIfRateLimited(config, errors, notices);
+  if (watchRateLimited) return watchRateLimited;
 
   const now = Math.floor(Date.now() / 1000);
   const sourceCandidates = [...book.values()];
@@ -189,6 +244,8 @@ export async function scan(config, options = {}) {
     watchedKeys,
     notices
   });
+  const deepRateLimited = await preserveIfRateLimited(config, errors, notices);
+  if (deepRateLimited) return deepRateLimited;
   const trendAnalysis = await enrichLifetimeTrends(sourceCandidates, deepAnalysis.selectedKeys, {
     gmgn,
     store: radarStore,
@@ -197,6 +254,8 @@ export async function scan(config, options = {}) {
     cacheSeconds: config.klineCacheSeconds ?? 240,
     notices
   });
+  const trendRateLimited = await preserveIfRateLimited(config, errors, notices);
+  if (trendRateLimited) return trendRateLimited;
   const developerTargetKeys = new Set(watchedKeys);
   for (const candidate of sourceCandidates) {
     const discoveryPreview = scoreCandidateEarly(candidate, { now, ...config });
@@ -222,6 +281,8 @@ export async function scan(config, options = {}) {
       notices
     })
   ]);
+  const developerRateLimited = await preserveIfRateLimited(config, errors, notices);
+  if (developerRateLimited) return developerRateLimited;
 
   const oldState = await jsonFile(statePath, { candidates: {}, discoveryCandidates: {} });
   const nextState = { candidates: {}, discoveryCandidates: {} };
@@ -275,14 +336,17 @@ export async function scan(config, options = {}) {
   radarStore.recordCandidates([...trackingCandidates.values()], now);
   radarStore.syncWatchSnapshots([...discoveryCandidates, ...candidates], now);
   const outcomeSamples = await sampleTrackedOutcomes(now, new Set(candidates.map((candidate) => candidate.key)), config, notices);
+  const outcomeRateLimited = await preserveIfRateLimited(config, errors, notices);
+  if (outcomeRateLimited) return outcomeRateLimited;
   const calibration = radarStore.calibrationContext(config.calibrationMinSamples ?? 50);
   candidates = radarStore.decorateCandidates(candidates, calibration);
   discoveryCandidates = radarStore.decorateCandidates(discoveryCandidates, calibration);
   const decoratedByKey = new Map(candidates.map((candidate) => [candidate.key, candidate]));
   const decoratedAlerts = alerts.map((alert) => decoratedByKey.get(alert.key) || alert);
 
+  const generatedAt = new Date().toISOString();
   const result = {
-    generatedAt: new Date().toISOString(),
+    generatedAt,
     chains: config.chains,
     candidates,
     discoveryCandidates,
@@ -301,12 +365,14 @@ export async function scan(config, options = {}) {
     strategies: {
       discovery: { name: "猎星榜", version: "early-v3", description: "原版评分加持币地址 >300、市值 $10k–$2M，并对已检测 Rug 风险一票否决；安全数据未完成时仅观察" },
       safety: { name: "验金榜", description: "通过 Top100、关联钱包和合约安全进行严格确认" }
-    }
+    },
+    dataStatus: { stale: false, reason: null, lastSuccessfulAt: generatedAt, retryAt: null }
   };
   await mkdir(dataDir, { recursive: true });
   await mkdir(outputDir, { recursive: true });
   await writeFile(statePath, JSON.stringify(nextState, null, 2));
-  await writeFile(path.join(outputDir, "latest.json"), JSON.stringify(result, null, 2));
+  await writeFile(latestPath, JSON.stringify(result, null, 2));
+  await writeFile(lastSuccessPath, JSON.stringify(result, null, 2));
   await writeFile(path.join(outputDir, "latest.md"), markdown(result, config.top));
 
   if (!options.quiet) {

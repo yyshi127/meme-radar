@@ -6,6 +6,7 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadConfig, loadLatestReport, scan } from "./index.mjs";
+import { getGmgnRateLimitStatus } from "./gmgn.mjs";
 import { isValidAddress } from "./core.mjs";
 import { radarStore } from "./store.mjs";
 
@@ -133,7 +134,9 @@ const server = http.createServer(async (request, response) => {
     const url = new URL(request.url, `http://${host}:${port}`);
     if (url.pathname === "/api/health" && request.method === "GET") return json(response, 200, { ok: true });
     if (!isAuthorized(request)) return requireAuthorization(response);
-    if (url.pathname === "/api/status" && request.method === "GET") return json(response, 200, status);
+    if (url.pathname === "/api/status" && request.method === "GET") {
+      return json(response, 200, { ...status, gmgnRateLimit: getGmgnRateLimitStatus() });
+    }
     if (url.pathname === "/api/report" && request.method === "GET") {
       if (!latestReport) return json(response, 202, { scanning: status.scanning, message: "首次扫描尚未完成" });
       return json(response, 200, latestReport);
