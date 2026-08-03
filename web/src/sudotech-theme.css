@@ -197,6 +197,21 @@ a:focus-visible,
   transform: translateY(-1px);
 }
 
+.scan-action-stack {
+  display: grid;
+  gap: 3px;
+  justify-items: stretch;
+}
+
+.scan-countdown {
+  color: #70858a;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+}
+
 .install-button {
   min-height: 40px;
   display: inline-flex;

@@ -4,6 +4,7 @@ import { createReadStream } from "node:fs";
 import { access, stat } from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
+import { gzipSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { loadConfig, loadLatestReport, scan } from "./index.mjs";
 import { getGmgnRateLimitStatus } from "./gmgn.mjs";
@@ -19,9 +20,12 @@ const authPassword = process.env.MEME_RADAR_PASSWORD || "";
 const authEnabled = Boolean(authUser && authPassword);
 const shouldOpen = process.argv.includes("--open");
 const config = await loadConfig();
+const scanIntervalMs = config.watchIntervalSeconds * 1000;
+let nextScheduledAt = Date.now() + scanIntervalMs;
 
 let activeScan = null;
 let latestReport = await loadLatestReport();
+let latestReportPayload = latestReport ? serializeReport(latestReport) : null;
 let status = {
   scanning: false,
   lastStartedAt: null,
@@ -38,6 +42,27 @@ function json(response, code, data) {
     "X-Content-Type-Options": "nosniff"
   });
   response.end(JSON.stringify(data));
+}
+
+function serializeReport(report) {
+  const text = JSON.stringify(report);
+  return { text, gzip: gzipSync(text) };
+}
+
+function reportJson(request, response) {
+  if (!latestReportPayload) return json(response, 202, { scanning: status.scanning, message: "首次扫描尚未完成" });
+  const acceptsGzip = /\bgzip\b/i.test(String(request.headers["accept-encoding"] || ""));
+  const body = acceptsGzip ? latestReportPayload.gzip : latestReportPayload.text;
+  const headers = {
+    "Content-Type": "application/json; charset=utf-8",
+    "Content-Length": Buffer.byteLength(body),
+    "Cache-Control": "no-store",
+    "Vary": "Accept-Encoding",
+    "X-Content-Type-Options": "nosniff"
+  };
+  if (acceptsGzip) headers["Content-Encoding"] = "gzip";
+  response.writeHead(200, headers);
+  response.end(body);
 }
 
 function isAuthorized(request) {
@@ -80,6 +105,7 @@ function startScan(trigger) {
   activeScan = scan(config, { quiet: true })
     .then((result) => {
       latestReport = result;
+      latestReportPayload = serializeReport(result);
       status = { ...status, scanning: false, lastCompletedAt: result.generatedAt, lastError: null };
       console.log(`[scan] ${result.candidates.length} candidates, ${result.errors.length} source errors`);
       return result;
@@ -135,11 +161,14 @@ const server = http.createServer(async (request, response) => {
     if (url.pathname === "/api/health" && request.method === "GET") return json(response, 200, { ok: true });
     if (!isAuthorized(request)) return requireAuthorization(response);
     if (url.pathname === "/api/status" && request.method === "GET") {
-      return json(response, 200, { ...status, gmgnRateLimit: getGmgnRateLimitStatus() });
+      return json(response, 200, {
+        ...status,
+        nextScheduledAt: new Date(nextScheduledAt).toISOString(),
+        gmgnRateLimit: getGmgnRateLimitStatus()
+      });
     }
     if (url.pathname === "/api/report" && request.method === "GET") {
-      if (!latestReport) return json(response, 202, { scanning: status.scanning, message: "首次扫描尚未完成" });
-      return json(response, 200, latestReport);
+      return reportJson(request, response);
     }
     if (url.pathname === "/api/watchlist" && request.method === "GET") {
       return json(response, 200, { items: radarStore.listWatchlist(latestReport?.candidates || []) });
@@ -189,8 +218,9 @@ server.listen(port, host, () => {
   const url = `http://${host}:${port}`;
   console.log(`Meme Radar Web: ${url}`);
   if (shouldOpen) openBrowser(url);
-  const reportAge = latestReport?.generatedAt ? Date.now() - Date.parse(latestReport.generatedAt) : Infinity;
-  if (reportAge >= config.watchIntervalSeconds * 1000) startScan("startup").catch(() => {});
 });
 
-setInterval(() => startScan("schedule").catch(() => {}), config.watchIntervalSeconds * 1000).unref();
+setInterval(() => {
+  nextScheduledAt = Date.now() + scanIntervalMs;
+  startScan("schedule").catch(() => {});
+}, scanIntervalMs).unref();

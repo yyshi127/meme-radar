@@ -5,6 +5,7 @@ import Inspector from "./components/Inspector.jsx";
 import Summary from "./components/Summary.jsx";
 import TokenTable from "./components/TokenTable.jsx";
 import { isCreatedWithin } from "./lib/format.js";
+import { loadCachedReport, saveCachedReport } from "./lib/report-cache.js";
 
 const defaultFilters = { priority: "focus", chain: "all", phase: "all", createdWithin: "all", query: "" };
 const pages = {
@@ -21,6 +22,12 @@ const pages = {
     path: "/verified"
   }
 };
+
+function cacheReportWhenIdle(report) {
+  const save = () => saveCachedReport(report).catch(() => {});
+  if ("requestIdleCallback" in window) window.requestIdleCallback(save, { timeout: 3_000 });
+  else window.setTimeout(save, 0);
+}
 
 async function api(path, options = {}) {
   const controller = new AbortController();
@@ -68,6 +75,11 @@ export default function App() {
     if (refreshingRef.current) return;
     refreshingRef.current = true;
     try {
+      const initialReportPromise = !hasReportRef.current
+        ? api("/api/report")
+          .then((value) => ({ status: "fulfilled", value }))
+          .catch((reason) => ({ status: "rejected", reason }))
+        : null;
       const [statusResult, watchlistResult] = await Promise.allSettled([
         api("/api/status"),
         api("/api/watchlist")
@@ -85,7 +97,9 @@ export default function App() {
         || statusResult.status === "rejected"
         || (completedAt && completedAt !== reportGeneratedAtRef.current);
       let reportResult = { status: "skipped" };
-      if (shouldFetchReport) {
+      if (initialReportPromise) {
+        reportResult = await initialReportPromise;
+      } else if (shouldFetchReport) {
         try {
           reportResult = { status: "fulfilled", value: await api("/api/report") };
         } catch (reason) {
@@ -98,6 +112,7 @@ export default function App() {
         if (!hasReportRef.current || generatedAt !== reportGeneratedAtRef.current) {
           reportGeneratedAtRef.current = generatedAt;
           setReport(reportResult.value);
+          cacheReportWhenIdle(reportResult.value);
         }
         hasReportRef.current = true;
         reportFailureCountRef.current = 0;
@@ -131,6 +146,15 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    loadCachedReport()
+      .then((cachedReport) => {
+        if (cancelled || hasReportRef.current || !cachedReport?.candidates) return;
+        reportGeneratedAtRef.current = cachedReport.generatedAt || null;
+        hasReportRef.current = true;
+        setReport(cachedReport);
+      })
+      .catch(() => {});
     refresh();
     const timer = setInterval(() => {
       if (document.visibilityState === "visible") refresh();
@@ -140,6 +164,7 @@ export default function App() {
     }
     document.addEventListener("visibilitychange", refreshWhenVisible);
     return () => {
+      cancelled = true;
       clearInterval(timer);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
