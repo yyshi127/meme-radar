@@ -445,11 +445,11 @@ a:focus-visible,
 }
 
 table {
-  min-width: 1040px;
+  min-width: 1120px;
 }
 
 table.watch-hit-table {
-  min-width: 1100px;
+  min-width: 1180px;
 }
 
 thead {
@@ -467,7 +467,7 @@ th {
 }
 
 th:nth-child(1) { width: 78px; }
-th:nth-child(2) { width: 178px; }
+th:nth-child(2) { width: 230px; }
 th:nth-child(3) { width: 132px; }
 th:nth-child(4) { width: 60px; }
 th:nth-child(5) { width: 68px; }
@@ -475,7 +475,7 @@ th:nth-child(n+6) { width: 78px; }
 th:last-child { width: 68px; }
 
 tbody tr {
-  height: 78px;
+  height: 104px;
   border-color: var(--border-soft);
 }
 
@@ -489,7 +489,7 @@ tbody tr.selected {
 }
 
 td {
-  padding: 0 11px;
+  padding: 11px;
   color: #496069;
   font-size: 11px;
 }
@@ -573,7 +573,8 @@ td {
 }
 
 .token-cell {
-  gap: 4px;
+  align-content: center;
+  gap: 5px;
 }
 
 .gmgn-token-link {
@@ -588,13 +589,15 @@ td {
 .token-name {
   color: #72868b;
   font-size: 9px;
+  line-height: 1.35;
 }
 
 .developer-history-summary {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   min-width: 0;
   align-items: center;
-  gap: 5px;
+  gap: 5px 7px;
   color: #63787d;
   font-size: 7px;
   line-height: 1.25;
@@ -618,9 +621,10 @@ td {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 4px;
-  overflow: hidden;
-  white-space: nowrap;
+  flex-wrap: wrap;
+  gap: 3px 5px;
+  overflow: visible;
+  white-space: normal;
 }
 
 .developer-ath-list i {
@@ -630,10 +634,11 @@ td {
 }
 
 .developer-ath-list b {
-  overflow: hidden;
+  flex: 0 0 auto;
+  overflow: visible;
   color: #607278;
   font-weight: 700;
-  text-overflow: ellipsis;
+  text-overflow: clip;
 }
 
 .twitter-contract-search {
@@ -765,7 +770,15 @@ td {
 .token-meta {
   display: flex;
   align-items: center;
-  gap: 7px;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.token-meta > .chain,
+.token-meta > .phase,
+.token-meta > .age-badge {
+  flex: 0 0 auto;
+  overflow: visible;
 }
 
 .token-symbol svg {
