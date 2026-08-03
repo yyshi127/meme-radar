@@ -28,11 +28,6 @@ function QuickWatchButton({ item, watched, busy, mobile = false, onToggle }) {
   );
 }
 
-function Verification({ status }) {
-  const label = status === "verified" ? "Top100" : status === "failed" ? "失败" : "待查";
-  return <span className={`verification verification-${status || "pending"}`}>{label}</span>;
-}
-
 function currentHolderCount(item, field) {
   const value = item.holderAnalysis?.[field];
   return Number.isFinite(value) ? compact(value) : "—";
@@ -256,7 +251,6 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
             <th className="number" title="当前余额大于 0 的 GMGN 聪明钱钱包">当前聪明钱</th>
             <th className="number" title="当前余额大于 0 的 GMGN KOL 钱包">当前KOL</th>
             <th className="number">信号</th>
-            <th>验证</th>
           </tr>
         </thead>
         <tbody>
@@ -369,7 +363,6 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
                   {item.evidenceFamilyCount || 0}
                 </span>
               </td>
-              <td><Verification status={item.verificationStatus} /></td>
             </tr>
           ))}
         </tbody>
@@ -434,7 +427,6 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
               <span className={`chain chain-${item.chain}`}>{item.chain.toUpperCase()}</span>
               <span className={`phase phase-${item.phase.toLowerCase()}`}>{phaseLabels[item.phase] || item.phase}</span>
               <CreationAge timestamp={item.creationTimestamp} />
-              <Verification status={item.verificationStatus} />
               {hasRenownedDeveloper(item) && (
                 <span className="renowned-dev-badge" title="GMGN renowned / KOL 开发者钱包标签">知名开发者</span>
               )}
