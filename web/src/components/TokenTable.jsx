@@ -154,21 +154,43 @@ function DeveloperHistory({ item, mobile = false }) {
     return <div className={`developer-history-summary ${mobile ? "mobile-developer-history" : ""} is-pending`}>开发履历待查</div>;
   }
   const count = Number.isFinite(history.totalCreatedCount) ? history.totalCreatedCount : "—";
-  const topTokens = Array.isArray(history.topTokens) ? history.topTokens : [];
-  const title = topTokens.length
-    ? topTokens.map((token, index) => `${index + 1}. ${token.symbol} ${money(token.athMarketCap)}`).join("；")
+  const topToken = Array.isArray(history.topTokens) ? history.topTokens[0] : null;
+  const title = topToken
+    ? `开发者 ATH Top1：${topToken.symbol}；历史最高市值 ${money(topToken.athMarketCap)}`
     : "未返回其他历史代币";
   return (
     <div className={`developer-history-summary ${mobile ? "mobile-developer-history" : ""}`} title={title}>
       <span className="developer-token-count">累计 {history.countIsMinimum ? "≥" : ""}{count} 币</span>
       <span className="developer-ath-list">
-        <i>ATH Top3</i>
-        {topTokens.length
-          ? topTokens.map((token, index) => (
-            <b key={token.address}>{index + 1}.{token.symbol}{mobile ? ` ${money(token.athMarketCap)}` : ""}</b>
-          ))
+        <i>开发 ATH Top1</i>
+        {topToken
+          ? <><b>{topToken.symbol}</b><em>历史最高市值 {money(topToken.athMarketCap)}</em></>
           : <b>暂无历史币</b>}
       </span>
+    </div>
+  );
+}
+
+function SameNameLeader({ item, mobile = false }) {
+  const reference = item.sameNameLeader;
+  const leader = reference?.leader;
+  if (reference?.status !== "ready" || !leader) {
+    return (
+      <div className={`same-name-list-summary ${mobile ? "mobile-same-name-summary" : ""} is-pending`}>
+        <i>同名最高</i><span>{reference?.status === "empty" ? "未找到同代码代币" : "当前最高市值待查"}</span>
+      </div>
+    );
+  }
+  const leaderName = leader.name && leader.name !== "?" ? leader.name : leader.symbol;
+  return (
+    <div
+      className={`same-name-list-summary ${mobile ? "mobile-same-name-summary" : ""}`}
+      title={`同名当前最高市值代币：${leaderName}（${leader.symbol}），当前最高市值 ${money(leader.marketCap)}`}
+    >
+      <i>同名最高</i>
+      <b>{leaderName}</b>
+      <em>当前最高市值 {money(leader.marketCap)}</em>
+      {reference.isCurrent && <small>当前币</small>}
     </div>
   );
 }
@@ -288,6 +310,7 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
                     </span>
                   </span>
                   <DeveloperHistory item={item} />
+                  <SameNameLeader item={item} />
                 </div>
               </td>
               <td className="trend-cell"><LifetimeTrend item={item} /></td>
@@ -403,6 +426,7 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
             </div>
             <p className="mobile-narrative"><strong>叙事</strong>{narrativeFor(item).summary}</p>
             <DeveloperHistory item={item} mobile />
+            <SameNameLeader item={item} mobile />
             <LifetimeTrend item={item} />
             <div className="mobile-token-metrics">
               <div><span>市值</span><MarketCap value={item.marketCap} /></div>

@@ -1,6 +1,5 @@
 import { RefreshIcon } from "./Icons.jsx";
 import { localTime } from "../lib/format.js";
-import InstallApp from "./InstallApp.jsx";
 
 export default function Header({ page, pages, status, generatedAt, onNavigate, onScan }) {
   const scanning = Boolean(status?.scanning);
@@ -32,7 +31,6 @@ export default function Header({ page, pages, status, generatedAt, onNavigate, o
         ))}
       </nav>
       <div className="topbar-actions">
-        <InstallApp />
         <div className="sync-state" aria-live="polite">
           <span className={`status-dot ${scanning ? "is-scanning" : ""}`} />
           <div>

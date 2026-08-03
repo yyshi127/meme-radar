@@ -445,11 +445,11 @@ a:focus-visible,
 }
 
 table {
-  min-width: 1120px;
+  min-width: 1150px;
 }
 
 table.watch-hit-table {
-  min-width: 1180px;
+  min-width: 1210px;
 }
 
 thead {
@@ -467,7 +467,7 @@ th {
 }
 
 th:nth-child(1) { width: 78px; }
-th:nth-child(2) { width: 230px; }
+th:nth-child(2) { width: 260px; }
 th:nth-child(3) { width: 132px; }
 th:nth-child(4) { width: 60px; }
 th:nth-child(5) { width: 68px; }
@@ -475,7 +475,7 @@ th:nth-child(n+6) { width: 78px; }
 th:last-child { width: 68px; }
 
 tbody tr {
-  height: 104px;
+  height: 128px;
   border-color: var(--border-soft);
 }
 
@@ -639,6 +639,63 @@ td {
   color: #607278;
   font-weight: 700;
   text-overflow: clip;
+}
+
+.developer-ath-list em,
+.same-name-list-summary em {
+  flex: 0 0 auto;
+  padding: 3px 5px;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 7px;
+  font-style: normal;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.developer-ath-list em {
+  background: linear-gradient(135deg, #f47a42, #dc4c28);
+}
+
+.same-name-list-summary {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  color: #607278;
+  font-size: 7px;
+  line-height: 1.25;
+}
+
+.same-name-list-summary i {
+  color: #287fdd;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.same-name-list-summary b {
+  min-width: 0;
+  overflow: hidden;
+  color: #456068;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.same-name-list-summary em {
+  background: linear-gradient(135deg, #309cf1, #3769df);
+}
+
+.same-name-list-summary small {
+  flex: 0 0 auto;
+  color: var(--brand-deep);
+  font-size: 7px;
+  font-weight: 800;
+}
+
+.same-name-list-summary.is-pending {
+  color: #91a0a4;
 }
 
 .twitter-contract-search {
@@ -2756,6 +2813,27 @@ td {
     border-radius: 5px;
     background: #fff;
     color: #456068;
+  }
+
+  .mobile-developer-history .developer-ath-list em {
+    min-height: 21px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .mobile-same-name-summary {
+    min-height: 39px;
+    padding: 8px 10px;
+    border: 1px solid #d9e7f8;
+    border-radius: 10px;
+    background: #f5f9ff;
+    font-size: 8px;
+  }
+
+  .mobile-same-name-summary em {
+    min-height: 21px;
+    display: inline-flex;
+    align-items: center;
   }
 
   .mobile-token-list .lifetime-trend {
