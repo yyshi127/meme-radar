@@ -12,8 +12,8 @@ test("每轮为所有收藏币刷新行情且不把离榜收藏强行加入候�
   const updates = [];
   const store = {
     listWatchlist: () => [
-      { key: current.key, chain: "bsc", address: currentAddress },
-      { key: `bsc:${staleAddress}`, chain: "bsc", address: staleAddress }
+      { key: current.key, chain: "bsc", address: currentAddress, snapshot: { developerHistory: { status: "ready" } } },
+      { key: `bsc:${staleAddress}`, chain: "bsc", address: staleAddress, snapshot: { symbol: "STALE", sameNameLeader: { status: "ready" } } }
     ],
     updateWatchMarket: (candidate) => {
       updates.push(candidate);
@@ -29,9 +29,13 @@ test("每轮为所有收藏币刷新行情且不把离榜收藏强行加入候�
     }
   });
 
-  const refreshed = await refreshWatchMarkets(book, { gmgn, store, notices: [] });
+  const result = await refreshWatchMarkets(book, { gmgn, store, notices: [] });
 
-  assert.equal(refreshed, 2);
+  assert.equal(result.refreshed, 2);
+  assert.equal(result.researchEntries.length, 2);
+  assert.equal(result.researchEntries[0].candidate.developerHistory.status, "ready");
+  assert.equal(result.researchEntries[1].candidate.symbol, "STALE");
+  assert.equal(result.researchEntries[1].candidate.sameNameLeader.status, "ready");
   assert.equal(current.marketCap, 40_000);
   assert.equal(updates.length, 2);
   assert.equal(updates[1].marketCap, 40_000);

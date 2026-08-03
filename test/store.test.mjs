@@ -14,12 +14,17 @@ test("收藏在重启后保留最后快照，刷新扫描不会丢失", async ()
     address: "0x1111111111111111111111111111111111111111",
     symbol: "KEEP",
     score: 72,
-    priority: "WATCH"
+    priority: "WATCH",
+    developerHistory: { status: "ready", totalCreatedCount: 4, topTokens: [] },
+    sameNameLeader: { status: "ready", leader: { symbol: "KEEP", marketCap: 80_000 } }
   };
 
   try {
     const first = createRadarStore(file);
     first.addWatch(candidate);
+    const initiallyPersisted = first.listWatchlist([])[0];
+    assert.equal(initiallyPersisted.snapshot.developerHistory.totalCreatedCount, 4);
+    assert.equal(initiallyPersisted.snapshot.sameNameLeader.leader.marketCap, 80_000);
     assert.equal(first.listWatchlist([candidate])[0].hitCount, 0);
     first.syncWatchSnapshots([{ ...candidate, priority: "SKIP" }], 1_800_000_000);
     assert.equal(first.listWatchlist([candidate])[0].hitCount, 0);
@@ -41,6 +46,22 @@ test("收藏在重启后保留最后快照，刷新扫描不会丢失", async ()
     assert.equal(marketRefreshed.snapshot.liquidity, 12_000);
     assert.equal(marketRefreshed.snapshot.marketUpdatedAt, "2027-01-15T08:20:00.000Z");
     assert.equal(marketRefreshed.hitCount, 2);
+    assert.equal(first.updateWatchResearch({
+      ...candidate,
+      creatorAddress: "0x2222222222222222222222222222222222222222",
+      developerHistory: { status: "ready", totalCreatedCount: 5, topTokens: [] },
+      sameNameLeader: { status: "ready", leader: { symbol: "KEEP", marketCap: 90_000 } }
+    }, 1_800_001_500), true);
+    const researchRefreshed = first.listWatchlist([])[0];
+    assert.equal(researchRefreshed.snapshot.developerHistory.totalCreatedCount, 5);
+    assert.equal(researchRefreshed.snapshot.sameNameLeader.leader.marketCap, 90_000);
+    assert.equal(researchRefreshed.snapshot.researchUpdatedAt, "2027-01-15T08:25:00.000Z");
+    assert.equal(researchRefreshed.hitCount, 2);
+    assert.equal(first.updateWatchResearch({
+      chain: candidate.chain,
+      address: candidate.address,
+      developerHistory: researchRefreshed.snapshot.developerHistory
+    }, 1_800_001_800), false);
     first.putKlineCache(candidate.key, "5m", 1_800_000_000, 1_800_000_900, [[1_800_000_000, 1], [1_800_000_900, 2]], null, 1_800_000_900);
     assert.equal(first.getKlineCache(candidate.key).points.length, 2);
     first.putDeveloperHistoryCache(`token:${candidate.key}`, "ready", {

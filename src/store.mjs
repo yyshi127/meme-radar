@@ -226,6 +226,24 @@ export function createRadarStore(file = path.join(root, "data", "radar.sqlite"))
     return statements.updateWatchMarket.run(JSON.stringify(snapshot), key).changes > 0;
   }
 
+  function updateWatchResearch(candidate, now = Math.floor(Date.now() / 1000)) {
+    const key = watchKey(candidate.chain, candidate.address);
+    const row = statements.getWatchSnapshot.get(key);
+    if (!row) return false;
+    const snapshot = parseJson(row.snapshot_json, {});
+    let changed = false;
+    for (const field of ["creatorAddress", "developerHistory", "sameNameLeader"]) {
+      const value = candidate[field];
+      if (value === null || value === undefined || value === "") continue;
+      if (JSON.stringify(snapshot[field]) === JSON.stringify(value)) continue;
+      snapshot[field] = value;
+      changed = true;
+    }
+    if (!changed) return false;
+    snapshot.researchUpdatedAt = new Date(now * 1000).toISOString();
+    return statements.updateWatchMarket.run(JSON.stringify(snapshot), key).changes > 0;
+  }
+
   function getHolderCache(key, maxAgeSeconds) {
     const row = statements.getHolderCache.get(key);
     if (!row || Math.floor(Date.now() / 1000) - row.checked_at > maxAgeSeconds) return null;
@@ -459,6 +477,7 @@ export function createRadarStore(file = path.join(root, "data", "radar.sqlite"))
     watchedKeys,
     syncWatchSnapshots,
     updateWatchMarket,
+    updateWatchResearch,
     getHolderCache,
     putHolderCache,
     getKlineCache,

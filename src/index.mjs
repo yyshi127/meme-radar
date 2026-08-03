@@ -220,12 +220,18 @@ export async function scan(config, options = {}) {
     errors.push("GMGN 基础数据源全部失败，本轮保留上次成功榜单");
     return persistStaleReport(config, errors, notices, "all_base_feeds_failed");
   }
-  const watchMarketsRefreshed = await refreshWatchMarkets(book, { gmgn, store: radarStore, notices });
+  const watchMarketResult = await refreshWatchMarkets(book, { gmgn, store: radarStore, notices });
+  const watchMarketsRefreshed = watchMarketResult.refreshed;
   const watchRateLimited = await preserveIfRateLimited(config, errors, notices);
   if (watchRateLimited) return watchRateLimited;
 
   const now = Math.floor(Date.now() / 1000);
   const sourceCandidates = [...book.values()];
+  const sourceKeys = new Set(sourceCandidates.map((candidate) => candidate.key));
+  const offListWatchCandidates = watchMarketResult.researchEntries
+    .map((entry) => entry.candidate)
+    .filter((candidate) => !sourceKeys.has(candidate.key));
+  const researchCandidates = [...sourceCandidates, ...offListWatchCandidates];
   const calibrationBefore = radarStore.calibrationContext(config.calibrationMinSamples ?? 50);
   for (const candidate of sourceCandidates) {
     candidate.walletReputationBonus = radarStore.walletReputation(candidate, calibrationBefore).bonus;
@@ -256,16 +262,22 @@ export async function scan(config, options = {}) {
   });
   const trendRateLimited = await preserveIfRateLimited(config, errors, notices);
   if (trendRateLimited) return trendRateLimited;
-  const developerTargetKeys = new Set(watchedKeys);
+  const developerTargetKeys = new Set();
+  const sameNameTargetKeys = new Set();
   for (const candidate of sourceCandidates) {
     const discoveryPreview = scoreCandidateEarly(candidate, { now, ...config });
     const safetyPreview = scoreCandidate(candidate, { now, ...config, strategy: "safety", requireVerification: true });
     if ([discoveryPreview.priority, safetyPreview.priority].some((priority) => ["ALERT", "WATCH"].includes(priority))) {
       developerTargetKeys.add(candidate.key);
+      sameNameTargetKeys.add(candidate.key);
     }
   }
+  for (const { candidate, snapshot } of watchMarketResult.researchEntries) {
+    if (snapshot.developerHistory?.status !== "ready") developerTargetKeys.add(candidate.key);
+    if (!["ready", "empty"].includes(snapshot.sameNameLeader?.status)) sameNameTargetKeys.add(candidate.key);
+  }
   const [developerHistoryAnalysis, sameNameAnalysis] = await Promise.all([
-    enrichDeveloperHistories(sourceCandidates, developerTargetKeys, {
+    enrichDeveloperHistories(researchCandidates, developerTargetKeys, {
       gmgn,
       store: radarStore,
       concurrency: config.developerHistoryConcurrency ?? 3,
@@ -273,7 +285,7 @@ export async function scan(config, options = {}) {
       failureCacheSeconds: config.developerHistoryFailureCacheSeconds ?? 30 * 60,
       notices
     }),
-    enrichSameNameLeaders(sourceCandidates, developerTargetKeys, {
+    enrichSameNameLeaders(researchCandidates, sameNameTargetKeys, {
       store: radarStore,
       concurrency: config.sameNameConcurrency ?? 3,
       cacheSeconds: config.sameNameCacheSeconds ?? 300,
@@ -283,6 +295,7 @@ export async function scan(config, options = {}) {
   ]);
   const developerRateLimited = await preserveIfRateLimited(config, errors, notices);
   if (developerRateLimited) return developerRateLimited;
+  for (const { candidate } of watchMarketResult.researchEntries) radarStore.updateWatchResearch(candidate, now);
 
   const oldState = await jsonFile(statePath, { candidates: {}, discoveryCandidates: {} });
   const nextState = { candidates: {}, discoveryCandidates: {} };
