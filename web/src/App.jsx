@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Filters from "./components/Filters.jsx";
 import Header from "./components/Header.jsx";
 import Inspector from "./components/Inspector.jsx";
+import ConfirmWatchRemoval from "./components/ConfirmWatchRemoval.jsx";
 import Summary from "./components/Summary.jsx";
 import TokenTable from "./components/TokenTable.jsx";
 import { isCreatedWithin } from "./lib/format.js";
@@ -64,6 +65,7 @@ export default function App() {
   const [selectedKey, setSelectedKey] = useState(null);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [watchBusyKey, setWatchBusyKey] = useState(null);
+  const [watchRemovalItem, setWatchRemovalItem] = useState(null);
   const [error, setError] = useState(null);
   const refreshingRef = useRef(false);
   const hasReportRef = useRef(false);
@@ -242,8 +244,7 @@ export default function App() {
     setMobileDetailOpen(true);
   }
 
-  async function toggleWatch(item) {
-    const watched = watchedKeys.has(item.key);
+  async function updateWatch(item, watched) {
     setWatchBusyKey(item.key);
     try {
       const result = watched
@@ -257,11 +258,28 @@ export default function App() {
       watchlistSignatureRef.current = JSON.stringify(nextWatchlist);
       setWatchlist(nextWatchlist);
       setError(null);
+      return true;
     } catch (requestError) {
       setError(`无法更新收藏：${requestError.message}`);
+      return false;
     } finally {
       setWatchBusyKey(null);
     }
+  }
+
+  function toggleWatch(item) {
+    const watched = watchedKeys.has(item.key);
+    if (watched) {
+      setWatchRemovalItem(item);
+      return;
+    }
+    updateWatch(item, false);
+  }
+
+  async function confirmWatchRemoval() {
+    if (!watchRemovalItem) return;
+    const removed = await updateWatch(watchRemovalItem, true);
+    if (removed) setWatchRemovalItem(null);
   }
 
   async function runScan() {
@@ -314,6 +332,12 @@ export default function App() {
           onClose={() => setMobileDetailOpen(false)}
         />
       </div>
+      <ConfirmWatchRemoval
+        item={watchRemovalItem}
+        busy={watchBusyKey === watchRemovalItem?.key}
+        onCancel={() => setWatchRemovalItem(null)}
+        onConfirm={confirmWatchRemoval}
+      />
       <footer className="statusbar">
         <span>{["127.0.0.1", "localhost"].includes(window.location.hostname) ? "只读模式 · 本机访问" : "登录保护 · 私有实例"}</span>
         <span>{status?.scanning ? "GMGN 数据更新中" : `自动扫描间隔 ${status?.intervalSeconds || 300} 秒`}</span>

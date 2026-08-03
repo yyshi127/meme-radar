@@ -294,6 +294,99 @@ a:focus-visible,
 .install-dialog .install-note { padding: 10px 12px; border-left: 3px solid #e7ad45; border-radius: 0 8px 8px 0; background: #fff9eb; color: #78643f; font-size: 11px; }
 .install-dialog-close { width: 100%; min-height: 42px; border: 0; border-radius: 10px; background: linear-gradient(135deg, var(--brand), var(--brand-dark)); color: #fff; font-size: 13px; font-weight: 750; cursor: pointer; }
 
+.watch-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(18, 41, 47, 0.34);
+  backdrop-filter: blur(7px);
+}
+
+.watch-confirm-dialog {
+  width: min(430px, 100%);
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 18px 14px;
+  padding: 24px;
+  border: 1px solid #f2d4d6;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 30px 90px rgba(31, 60, 66, 0.24);
+}
+
+.watch-confirm-icon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: #fff0f1;
+  color: #e54857;
+  font-size: 22px;
+  font-weight: 850;
+}
+
+.watch-confirm-copy > span {
+  color: var(--brand-dark);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.watch-confirm-copy h2 {
+  margin: 3px 0 7px;
+  color: #17343b;
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.watch-confirm-copy p {
+  margin: 0;
+  color: #6b8085;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.watch-confirm-token {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px 10px;
+  padding: 13px 15px;
+  border: 1px solid #e4eeee;
+  border-radius: 13px;
+  background: #f7fbfa;
+}
+
+.watch-confirm-token strong { color: #17343b; font-size: 15px; }
+.watch-confirm-token span { overflow: hidden; color: #667b80; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.watch-confirm-token code { color: #769095; font-size: 10px; }
+
+.watch-confirm-actions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.watch-confirm-actions button {
+  min-height: 42px;
+  border-radius: 11px;
+  font-size: 13px;
+  font-weight: 780;
+  cursor: pointer;
+}
+
+.watch-confirm-actions button:disabled { cursor: wait; opacity: 0.65; }
+.watch-confirm-cancel { border: 1px solid #cfe0df; background: #fff; color: #315c61; }
+.watch-confirm-remove { border: 1px solid #ea5966; background: linear-gradient(135deg, #f0626f, #df3f50); color: #fff; box-shadow: 0 9px 22px rgba(223, 63, 80, 0.2); }
+.watch-confirm-cancel:hover:not(:disabled) { border-color: #97c4bc; background: #f5fbf9; }
+.watch-confirm-remove:hover:not(:disabled) { background: linear-gradient(135deg, #ed5261, #d93647); }
+
 .summary-strip {
   min-height: 84px;
   align-items: center;
