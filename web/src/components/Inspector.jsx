@@ -367,6 +367,43 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
           </div>
           <span className="holder-count">{item.holderAnalysis?.devWalletCount ?? "—"} 个钱包</span>
         </div>
+        <div className="developer-basic-info">
+          <div className="section-heading-row developer-basic-heading">
+            <h4>开发者基本信息</h4>
+            <span>身份 · 钱包 · 当前状态</span>
+          </div>
+          {Array.isArray(item.holderAnalysis?.developerWallets) ? (
+            item.holderAnalysis.developerWallets.length ? (
+              <div className="dev-wallet-list">
+                {item.holderAnalysis.developerWallets.map((wallet) => (
+                  <div className="dev-wallet-card" key={wallet.address}>
+                    <div className="dev-wallet-head">
+                      <div>
+                        <strong>{wallet.name || (wallet.role === "creator" ? "主开发者" : "团队钱包")}</strong>
+                        <span>{wallet.twitterUsername ? `@${wallet.twitterUsername}` : "未识别公开身份"}</span>
+                      </div>
+                      <div className="dev-badges">
+                        <span>{wallet.role === "creator" ? "Creator" : "Dev Team"}</span>
+                        {wallet.isRenowned && <span className="identity-badge">KOL / 名人</span>}
+                        {wallet.isSmartMoney && <span className="identity-badge">聪明钱</span>}
+                      </div>
+                    </div>
+                    <button className="dev-wallet-address" type="button" onClick={() => navigator.clipboard.writeText(wallet.address)} title={`点击复制 ${wallet.address}`}>
+                      {wallet.address}
+                    </button>
+                    <div className="dev-wallet-metrics">
+                      <span>{wallet.isHolding ? `持仓 ${holderPercent(wallet.amountPercentage)} · ${money(wallet.usdValue)}` : "已清仓"}</span>
+                      <span>均价 {tokenPrice(wallet.averageCost)} · 浮盈 {signedPercent(wallet.unrealizedPnl)}</span>
+                      <span>已实现 {signedMoney(wallet.realizedProfit)} · 买 {wallet.buyTxCount} / 卖 {wallet.sellTxCount}</span>
+                      <span>标签 {developerTags(wallet).join(" · ") || "无附加标签"}</span>
+                    </div>
+                    {wallet.transferredToTop100 && <div className="dev-transfer-warning">转出目标仍在 Top100：{shortWallet(wallet.transferOutAddress)}</div>}
+                  </div>
+                ))}
+              </div>
+            ) : <p className="list-empty">GMGN 未识别到开发者标签钱包；这不代表开发者身份安全或已放弃控制。</p>
+          ) : <p className="list-empty">等待下一轮深度扫描生成开发者信息。</p>}
+        </div>
         {Array.isArray(item.holderAnalysis?.developerWallets) && (
           <div className="chip-grid dev-summary-grid">
             <div><span>当前仍持仓</span><strong>{item.holderAnalysis.devActiveWalletCount ?? 0} 个</strong></div>
@@ -407,43 +444,12 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
           ) : <p className="list-empty">开发者地址或历史发币数据暂时不可用，将在后续扫描中重试。</p>}
           <p className="holder-note">Top3 明确排除当前代币，并按 GMGN 历史最高市值排序；累计数量包含当前代币。</p>
         </div>
-        {Array.isArray(item.holderAnalysis?.developerWallets) ? (
-          <>
-            {item.holderAnalysis.developerWallets.length ? (
-              <div className="dev-wallet-list">
-                {item.holderAnalysis.developerWallets.map((wallet) => (
-                  <div className="dev-wallet-card" key={wallet.address}>
-                    <div className="dev-wallet-head">
-                      <div>
-                        <strong>{wallet.name || (wallet.role === "creator" ? "主开发者" : "团队钱包")}</strong>
-                        <span>{wallet.twitterUsername ? `@${wallet.twitterUsername}` : "未识别公开身份"}</span>
-                      </div>
-                      <div className="dev-badges">
-                        <span>{wallet.role === "creator" ? "Creator" : "Dev Team"}</span>
-                        {wallet.isRenowned && <span className="identity-badge">KOL / 名人</span>}
-                        {wallet.isSmartMoney && <span className="identity-badge">聪明钱</span>}
-                      </div>
-                    </div>
-                    <button className="dev-wallet-address" type="button" onClick={() => navigator.clipboard.writeText(wallet.address)} title={`点击复制 ${wallet.address}`}>
-                      {wallet.address}
-                    </button>
-                    <div className="dev-wallet-metrics">
-                      <span>{wallet.isHolding ? `持仓 ${holderPercent(wallet.amountPercentage)} · ${money(wallet.usdValue)}` : "已清仓"}</span>
-                      <span>均价 {tokenPrice(wallet.averageCost)} · 浮盈 {signedPercent(wallet.unrealizedPnl)}</span>
-                      <span>已实现 {signedMoney(wallet.realizedProfit)} · 买 {wallet.buyTxCount} / 卖 {wallet.sellTxCount}</span>
-                      <span>标签 {developerTags(wallet).join(" · ") || "无附加标签"}</span>
-                    </div>
-                    {wallet.transferredToTop100 && <div className="dev-transfer-warning">转出目标仍在 Top100：{shortWallet(wallet.transferOutAddress)}</div>}
-                  </div>
-                ))}
-              </div>
-            ) : <p className="list-empty">GMGN 未识别到开发者标签钱包；这不代表开发者身份安全或已放弃控制。</p>}
-            <p className="holder-note">
-              身份与标签来自 GMGN；“KOL / 名人”仅在钱包带 renowned/kol 标签时显示。
-              {item.holderAnalysis.developerCoverage === "top100-only" ? " 当前开发者名单仅覆盖 Top100，可能遗漏已清仓钱包。" : " 已包含 GMGN dev 标签查询结果，包括部分已清仓钱包。"}
-            </p>
-          </>
-        ) : <p className="list-empty">等待下一轮深度扫描生成开发者信息。</p>}
+        {Array.isArray(item.holderAnalysis?.developerWallets) && (
+          <p className="holder-note developer-coverage-note">
+            身份与标签来自 GMGN；“KOL / 名人”仅在钱包带 renowned/kol 标签时显示。
+            {item.holderAnalysis.developerCoverage === "top100-only" ? " 当前开发者名单仅覆盖 Top100，可能遗漏已清仓钱包。" : " 已包含 GMGN dev 标签查询结果，包括部分已清仓钱包。"}
+          </p>
+        )}
       </section>
 
       <section className="detail-section evidence-summary" aria-labelledby="confidence-title">

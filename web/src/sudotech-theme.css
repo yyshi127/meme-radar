@@ -11,23 +11,23 @@
   --text: #0c1728;
   --muted: #5c6b7a;
   --subtle: #82949a;
-  --brand: #12a489;
-  --brand-dark: #0b8f7b;
-  --brand-deep: #067061;
-  --alert: #d94c42;
-  --alert-soft: #fff1ef;
-  --watch: #c38722;
-  --watch-soft: #fff8e8;
-  --healthy: #12a489;
-  --healthy-soft: #e9f8f4;
-  --smart: #187f9c;
-  --smart-soft: #eaf7fb;
-  --kol: #7454c7;
-  --kol-soft: #f2eeff;
-  --info: #347d91;
-  --info-soft: #eaf5f7;
-  --blue: #12a489;
-  --blue-soft: #eaf8f5;
+  --brand: #16b99a;
+  --brand-dark: #0d9b82;
+  --brand-deep: #087763;
+  --alert: #ef4f63;
+  --alert-soft: #fff0f3;
+  --watch: #f36f3d;
+  --watch-soft: #fff1e9;
+  --healthy: #1dbb7e;
+  --healthy-soft: #eafaf3;
+  --smart: #2f98ee;
+  --smart-soft: #ebf6ff;
+  --kol: #7d62ef;
+  --kol-soft: #f2efff;
+  --info: #27a3d8;
+  --info-soft: #eaf8fd;
+  --blue: #347ff0;
+  --blue-soft: #edf4ff;
   --radius: 12px;
   font-family: Inter, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
 }
@@ -502,15 +502,17 @@ td {
 }
 
 .priority-alert {
-  color: #b33d35;
-  border-color: #efb6b0;
-  background: var(--alert-soft);
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(135deg, #f35b69, #d93652);
+  box-shadow: 0 5px 13px rgba(226, 57, 82, 0.24);
 }
 
 .priority-watch {
-  color: #9a6614;
-  border-color: #ecd59f;
-  background: var(--watch-soft);
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(135deg, #f47a42, #dc4c28);
+  box-shadow: 0 5px 13px rgba(224, 80, 42, 0.22);
 }
 
 .priority-skip,
@@ -543,15 +545,17 @@ td {
 }
 
 .score-badge.score-high {
-  color: var(--brand-deep);
-  border-color: #a9d9cd;
-  background: var(--healthy-soft);
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(135deg, #22bd83, #0d9270);
+  box-shadow: 0 4px 11px rgba(20, 158, 113, 0.18);
 }
 
 .score-badge.score-medium {
-  color: #286d80;
-  border-color: #b8dae2;
-  background: var(--info-soft);
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(135deg, #2f9def, #3c68df);
+  box-shadow: 0 4px 11px rgba(49, 119, 226, 0.18);
 }
 
 .score-badge.score-low {
@@ -620,7 +624,7 @@ td {
 }
 
 .developer-ath-list i {
-  color: #9a6b1e;
+  color: #e05d31;
   font-style: normal;
   font-weight: 800;
 }
@@ -696,11 +700,11 @@ td {
 }
 
 .lifetime-trend.trend-up {
-  color: #07866e;
+  color: #0eaa77;
 }
 
 .lifetime-trend.trend-down {
-  color: #d94c42;
+  color: #ec4b5f;
 }
 
 .lifetime-trend.trend-empty {
@@ -726,30 +730,30 @@ td {
 
 .market-cap-micro {
   color: #fff;
-  border-color: #0876a8;
-  background: #087fad;
-  box-shadow: 0 4px 10px rgba(8, 127, 173, 0.2);
+  border-color: transparent;
+  background: linear-gradient(135deg, #309cf1, #3769df);
+  box-shadow: 0 5px 13px rgba(49, 119, 226, 0.25);
 }
 
 .market-cap-small {
   color: #fff;
-  border-color: #06745f;
-  background: #078870;
-  box-shadow: 0 4px 10px rgba(7, 136, 112, 0.2);
+  border-color: transparent;
+  background: linear-gradient(135deg, #22bd83, #0d9270);
+  box-shadow: 0 5px 13px rgba(20, 158, 113, 0.23);
 }
 
 .market-cap-medium {
   color: #fff;
-  border-color: #a85f00;
-  background: #bd6b00;
-  box-shadow: 0 4px 10px rgba(189, 107, 0, 0.2);
+  border-color: transparent;
+  background: linear-gradient(135deg, #f47a42, #dc4c28);
+  box-shadow: 0 5px 13px rgba(224, 80, 42, 0.24);
 }
 
 .market-cap-large {
   color: #fff;
-  border-color: #bd3832;
-  background: #d94c42;
-  box-shadow: 0 4px 10px rgba(217, 76, 66, 0.22);
+  border-color: transparent;
+  background: linear-gradient(135deg, #f35b69, #d93652);
+  box-shadow: 0 5px 13px rgba(226, 57, 82, 0.25);
 }
 
 .market-cap-unknown {
@@ -786,12 +790,12 @@ td {
   min-height: 19px;
   padding-inline: 6px;
   overflow: visible !important;
-  border-color: #c8baef;
-  background: linear-gradient(135deg, #f2eeff, #e9e2ff);
-  color: #5d3fad !important;
+  border-color: transparent;
+  background: linear-gradient(135deg, #8c70f6, #6652dc);
+  color: #fff !important;
   font-size: 7px !important;
   letter-spacing: 0.02em;
-  box-shadow: 0 3px 9px rgba(116, 84, 199, 0.11);
+  box-shadow: 0 4px 10px rgba(111, 82, 220, 0.2);
 }
 
 .narrative-badge {
@@ -811,9 +815,9 @@ td {
   flex: 0 0 auto;
   min-height: 19px;
   padding-inline: 6px;
-  border-color: #b8dae2;
+  border-color: #b8ddf3;
   background: var(--info-soft);
-  color: #286d80;
+  color: #197ba8;
   font-size: 7px;
   letter-spacing: 0.01em;
 }
@@ -825,26 +829,26 @@ td {
 }
 
 .narrative-space {
-  color: #4856a9 !important;
-  border-color: #c3c9ee;
-  background: #f0f2ff;
+  color: #4c5ed7 !important;
+  border-color: #bec8ff;
+  background: #eff2ff;
 }
 
 .narrative-tech {
-  color: #146d86 !important;
-  border-color: #acd4df;
+  color: #147dab !important;
+  border-color: #a7dcf1;
   background: var(--smart-soft);
 }
 
 .narrative-animal {
-  color: #976214 !important;
-  border-color: #e5cf96;
+  color: #d6542b !important;
+  border-color: #ffc5a7;
   background: var(--watch-soft);
 }
 
 .narrative-figure {
-  color: #5d3fad !important;
-  border-color: #c9bcef;
+  color: #684ddd !important;
+  border-color: #c9bfff;
   background: var(--kol-soft);
 }
 
@@ -856,9 +860,9 @@ td {
 
 .narrative-community,
 .narrative-project {
-  color: #9d4a6f !important;
-  border-color: #e1bdd0;
-  background: #fff1f7;
+  color: #bd3f77 !important;
+  border-color: #f0b9d2;
+  background: #fff0f7;
 }
 
 .chain {
@@ -871,7 +875,7 @@ td {
 }
 
 .chain-bsc {
-  color: #a47419;
+  color: #e3642e;
 }
 
 .phase {
@@ -879,11 +883,11 @@ td {
 }
 
 .phase-breakout {
-  color: #347d91;
+  color: #287fdd;
 }
 
 .phase-late {
-  color: #bb564f;
+  color: #e04b5d;
 }
 
 .metric-tag {
@@ -913,8 +917,8 @@ td {
 }
 
 .hit-tag.hit-new {
-  color: #286d80;
-  border-color: #b8dae2;
+  color: #197ba8;
+  border-color: #b8ddf3;
   background: var(--info-soft);
 }
 
@@ -945,21 +949,24 @@ td {
 }
 
 .signal-tag-smart.has-signal {
-  color: #146d86;
-  border-color: #acd4df;
-  background: var(--smart-soft);
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(135deg, #309cf1, #3769df);
+  box-shadow: 0 4px 10px rgba(49, 119, 226, 0.18);
 }
 
 .signal-tag-kol.has-signal {
-  color: #5d3fad;
-  border-color: #c9bcef;
-  background: var(--kol-soft);
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(135deg, #8c70f6, #6652dc);
+  box-shadow: 0 4px 10px rgba(111, 82, 220, 0.18);
 }
 
 .signal-tag-evidence.has-signal {
-  color: var(--brand-deep);
-  border-color: #a8d9cc;
-  background: var(--healthy-soft);
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(135deg, #22bd83, #0d9270);
+  box-shadow: 0 4px 10px rgba(20, 158, 113, 0.18);
 }
 
 .safety-cell {
@@ -1121,47 +1128,56 @@ td {
 }
 
 .decision-metric-grid > div {
-  border-color: transparent !important;
-  color: #fff;
-  box-shadow: 0 8px 18px rgba(25, 72, 82, 0.14) !important;
+  border-color: #dfe9eb !important;
+  background: #fff !important;
+  color: var(--text);
+  box-shadow: 0 7px 18px rgba(34, 76, 86, 0.055) !important;
 }
 
 .decision-section .decision-metric-grid .safety-verified {
-  background: linear-gradient(135deg, #07957c, #087462) !important;
+  background: #fff !important;
+  box-shadow: inset 3px 0 var(--healthy), 0 7px 18px rgba(34, 76, 86, 0.055) !important;
 }
 
 .decision-section .decision-metric-grid .safety-pending {
-  background: linear-gradient(135deg, #c98919, #a76800) !important;
+  background: #fff !important;
+  box-shadow: inset 3px 0 var(--watch), 0 7px 18px rgba(34, 76, 86, 0.055) !important;
 }
 
 .decision-section .decision-metric-grid .safety-blocked {
-  background: linear-gradient(135deg, #db584f, #b93b35) !important;
+  background: #fff !important;
+  box-shadow: inset 3px 0 var(--alert), 0 7px 18px rgba(34, 76, 86, 0.055) !important;
 }
 
 .decision-metric-grid .metric-market {
-  background: linear-gradient(135deg, #26758a, #15566b);
+  background: #fff !important;
+  box-shadow: inset 3px 0 var(--blue), 0 7px 18px rgba(34, 76, 86, 0.055) !important;
 }
 
 .decision-metric-grid .metric-liquidity {
-  background: linear-gradient(135deg, #178c91, #0c686f);
+  background: #fff !important;
+  box-shadow: inset 3px 0 var(--info), 0 7px 18px rgba(34, 76, 86, 0.055) !important;
 }
 
 .decision-metric-grid .completeness-complete {
-  background: linear-gradient(135deg, #168d78, #0a6d5f);
+  background: #fff !important;
+  box-shadow: inset 3px 0 var(--healthy), 0 7px 18px rgba(34, 76, 86, 0.055) !important;
 }
 
 .decision-metric-grid .completeness-partial {
-  background: linear-gradient(135deg, #d08b18, #a76a05);
+  background: #fff !important;
+  box-shadow: inset 3px 0 var(--watch), 0 7px 18px rgba(34, 76, 86, 0.055) !important;
 }
 
 .decision-metric-grid .completeness-low,
 .decision-metric-grid .completeness-unknown {
-  background: linear-gradient(135deg, #d85a51, #aa3e38);
+  background: #fff !important;
+  box-shadow: inset 3px 0 var(--alert), 0 7px 18px rgba(34, 76, 86, 0.055) !important;
 }
 
 .decision-metric-grid span,
 .decision-metric-grid small {
-  color: rgba(255, 255, 255, 0.78) !important;
+  color: var(--muted) !important;
 }
 
 .decision-metric-grid strong,
@@ -1171,8 +1187,18 @@ td {
 .decision-metric-grid .completeness-complete strong,
 .decision-metric-grid .completeness-partial strong,
 .decision-metric-grid .completeness-low strong {
-  color: #fff !important;
+  color: #17323b !important;
 }
+
+.decision-metric-grid .metric-market strong { color: #2f76e7 !important; }
+.decision-metric-grid .metric-liquidity strong { color: #188ab7 !important; }
+.decision-metric-grid .safety-verified strong,
+.decision-metric-grid .completeness-complete strong { color: #0c9270 !important; }
+.decision-metric-grid .safety-pending strong,
+.decision-metric-grid .completeness-partial strong { color: #df5a2e !important; }
+.decision-metric-grid .safety-blocked strong,
+.decision-metric-grid .completeness-low strong,
+.decision-metric-grid .completeness-unknown strong { color: #df3d55 !important; }
 
 .risk-detail {
   border-color: #dce6e7;
@@ -1193,9 +1219,9 @@ td {
   background: linear-gradient(145deg, #fff0ee, #fff9f8);
 }
 
-.risk-detail-verified .detail-section-order { background: #137f6c; color: #fff; }
-.risk-detail-pending .detail-section-order { background: #ad7008; color: #fff; }
-.risk-detail-blocked .detail-section-order { background: #c5463f; color: #fff; }
+.risk-detail-verified .detail-section-order { background: linear-gradient(135deg, #22bd83, #0d9270); color: #fff; }
+.risk-detail-pending .detail-section-order { background: linear-gradient(135deg, #f47a42, #dc4c28); color: #fff; }
+.risk-detail-blocked .detail-section-order { background: linear-gradient(135deg, #f35b69, #d93652); color: #fff; }
 
 .risk-summary-badge {
   min-height: 25px;
@@ -1212,21 +1238,24 @@ td {
 }
 
 .risk-summary-verified {
-  border-color: #137f6c;
-  background: #137f6c;
+  border-color: transparent;
+  background: linear-gradient(135deg, #22bd83, #0d9270);
   color: #fff;
+  box-shadow: 0 4px 11px rgba(20, 158, 113, 0.2);
 }
 
 .risk-summary-pending {
-  border-color: #ad7008;
-  background: #ad7008;
+  border-color: transparent;
+  background: linear-gradient(135deg, #f47a42, #dc4c28);
   color: #fff;
+  box-shadow: 0 4px 11px rgba(224, 80, 42, 0.2);
 }
 
 .risk-summary-blocked {
-  border-color: #c5463f;
-  background: #c5463f;
+  border-color: transparent;
+  background: linear-gradient(135deg, #f35b69, #d93652);
   color: #fff;
+  box-shadow: 0 4px 11px rgba(226, 57, 82, 0.2);
 }
 
 .risk-list-panel {
@@ -1276,7 +1305,7 @@ td {
 }
 
 .opportunity-detail .detail-section-order {
-  background: #26788f;
+  background: linear-gradient(135deg, #309cf1, #3769df);
   color: #fff;
 }
 
@@ -1289,8 +1318,9 @@ td {
   justify-self: end;
   padding: 5px 8px;
   border-radius: 7px;
-  background: #26788f;
+  background: linear-gradient(135deg, #309cf1, #3769df);
   color: #fff;
+  box-shadow: 0 5px 13px rgba(49, 119, 226, 0.22);
 }
 
 .funding-detail {
@@ -1300,8 +1330,8 @@ td {
 
 .funding-detail .detail-section-order,
 .funding-detail .holder-count {
-  border-color: #6650aa;
-  background: #6650aa;
+  border-color: transparent;
+  background: linear-gradient(135deg, #8c70f6, #6652dc);
   color: #fff;
 }
 
@@ -1311,40 +1341,71 @@ td {
 
 .funding-detail .kol-cost-grid strong {
   justify-self: start;
-  padding: 4px 7px;
-  border-radius: 6px;
-  background: #6650aa;
-  color: #fff;
+  padding: 0;
+  background: transparent;
+  color: #6249c8;
 }
 
-.funding-detail .kol-cost-grid .positive-value,
-.funding-detail .kol-cost-grid .negative-value {
-  color: #fff;
-}
+.funding-detail .kol-cost-grid .positive-value { color: #0c9270; }
+.funding-detail .kol-cost-grid .negative-value { color: #df3d55; }
 
 .developer-detail {
-  border-color: #e6cd9e;
-  background: linear-gradient(145deg, #fff7e8, #fffdf8);
+  border-color: #ffc9bd;
+  background: linear-gradient(145deg, #fff5f2, #fffdfc);
 }
 
 .developer-detail .detail-section-order,
 .developer-detail > .detail-section-heading .holder-count {
-  border-color: #a96d12;
-  background: #a96d12;
+  border-color: transparent;
+  background: linear-gradient(135deg, #f47a42, #dc4c28);
   color: #fff;
 }
 
 .developer-detail .developer-history-total {
-  border-color: #a96d12;
-  background: #a96d12;
+  border-color: transparent;
+  background: linear-gradient(135deg, #f47a42, #dc4c28);
   color: #fff;
+  box-shadow: 0 4px 11px rgba(224, 80, 42, 0.2);
 }
 
 .developer-detail .developer-ath-value strong {
   padding: 3px 6px;
   border-radius: 5px;
-  background: #a96d12;
+  background: linear-gradient(135deg, #f47a42, #dc4c28);
   color: #fff;
+  box-shadow: 0 4px 10px rgba(224, 80, 42, 0.18);
+}
+
+.developer-basic-info {
+  display: grid;
+  gap: 9px;
+  margin-bottom: 12px;
+  padding: 11px;
+  border: 1px solid #ffd7cf;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 7px 18px rgba(220, 76, 40, 0.055);
+}
+
+.developer-basic-heading {
+  margin-bottom: 0;
+}
+
+.developer-basic-heading h4 {
+  margin: 0;
+  color: #bb432a;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.developer-basic-heading > span {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.developer-coverage-note {
+  margin-bottom: 0;
 }
 
 .evidence-summary {
@@ -1354,8 +1415,8 @@ td {
 
 .evidence-summary .detail-section-order,
 .evidence-summary > .detail-section-heading .verification {
-  border-color: #34739c;
-  background: #34739c;
+  border-color: transparent;
+  background: linear-gradient(135deg, #309cf1, #3769df);
   color: #fff;
 }
 
@@ -1363,7 +1424,7 @@ td {
   justify-self: start;
   padding: 4px 7px;
   border-radius: 6px;
-  background: #34739c;
+  background: linear-gradient(135deg, #309cf1, #3769df);
   color: #fff;
 }
 
@@ -1811,21 +1872,24 @@ td {
 }
 
 .key-signal-smart.is-active {
-  color: #146d86;
-  border-color: #acd4df;
-  background: var(--smart-soft);
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(135deg, #35aef4, #287ce7);
+  box-shadow: 0 5px 13px rgba(47, 152, 238, 0.2);
 }
 
 .key-signal-kol.is-active {
-  color: #5d3fad;
-  border-color: #c9bcef;
-  background: var(--kol-soft);
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(135deg, #9172f5, #6a50df);
+  box-shadow: 0 5px 13px rgba(125, 98, 239, 0.2);
 }
 
 .key-signal-evidence.is-active {
-  color: var(--brand-deep);
-  border-color: #a8d9cc;
-  background: var(--healthy-soft);
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(135deg, #27c995, #10a77d);
+  box-shadow: 0 5px 13px rgba(29, 187, 126, 0.2);
 }
 
 .key-signal-holder.is-active {
@@ -2000,9 +2064,9 @@ td {
   gap: 9px;
   margin-bottom: 12px;
   padding: 11px;
-  border: 1px solid #ead9a9;
+  border: 1px solid #ffd7cf;
   border-radius: 11px;
-  background: linear-gradient(145deg, #fffdf7 0%, #fffaf0 100%);
+  background: linear-gradient(145deg, #fff 0%, #fff7f5 100%);
 }
 
 .developer-history-heading {
@@ -2011,7 +2075,7 @@ td {
 
 .developer-history-heading h4 {
   margin: 0;
-  color: #7d5718;
+  color: #bb432a;
   font-size: 10px;
   font-weight: 850;
 }
