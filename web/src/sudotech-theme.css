@@ -870,6 +870,49 @@ td {
   transform: none;
 }
 
+.quick-watch-button {
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #cbdcde;
+  border-radius: 7px;
+  background: #f6faf9;
+  color: #71868b;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+
+.quick-watch-button svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+
+.quick-watch-button:hover:not(:disabled),
+.quick-watch-button:focus-visible {
+  border-color: #f3b23e;
+  background: #fff8e9;
+  color: #d88a05;
+  transform: translateY(-1px);
+}
+
+.quick-watch-button.is-watched {
+  border-color: #efb344;
+  background: linear-gradient(135deg, #ffca59, #f0a51e);
+  color: #fff;
+  box-shadow: 0 5px 13px rgba(224, 151, 18, 0.2);
+}
+
+.quick-watch-button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+  transform: none;
+}
+
 .trend-cell {
   min-width: 132px;
 }
@@ -1006,10 +1049,6 @@ td {
 .gmgn-token-link:hover .token-symbol svg,
 .gmgn-token-link:focus-visible .token-symbol svg {
   stroke: var(--brand);
-}
-
-.token-symbol .watched-mark {
-  color: var(--watch);
 }
 
 .renowned-dev-badge {
@@ -2739,18 +2778,13 @@ td {
     white-space: nowrap;
   }
 
-  .mobile-watch-mark {
-    display: grid;
-    place-items: center;
-    color: var(--watch);
+  .mobile-quick-watch {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
   }
 
-  .mobile-watch-mark svg {
-    width: 16px;
-    height: 16px;
-    fill: currentColor;
-    stroke: currentColor;
-  }
+  .mobile-quick-watch svg { width: 17px; height: 17px; }
 
   .mobile-watch-remove {
     width: 30px;

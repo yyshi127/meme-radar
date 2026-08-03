@@ -8,6 +8,26 @@ function Priority({ value }) {
   return <span className={`priority priority-${value.toLowerCase()}`}>{value}</span>;
 }
 
+function QuickWatchButton({ item, watched, busy, mobile = false, onToggle }) {
+  return (
+    <button
+      className={`quick-watch-button ${watched ? "is-watched" : ""} ${mobile ? "mobile-quick-watch" : ""}`}
+      type="button"
+      disabled={busy}
+      aria-pressed={watched}
+      aria-label={watched ? `取消收藏 ${item.symbol}` : `快速收藏 ${item.symbol}`}
+      title={watched ? "已收藏，点击取消" : "快速收藏"}
+      onClick={(event) => {
+        event.stopPropagation();
+        onToggle(item);
+      }}
+      onKeyDown={(event) => event.stopPropagation()}
+    >
+      <StarIcon filled={watched} />
+    </button>
+  );
+}
+
 function Verification({ status }) {
   const label = status === "verified" ? "Top100" : status === "failed" ? "失败" : "待查";
   return <span className={`verification verification-${status || "pending"}`}>{label}</span>;
@@ -264,7 +284,6 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
                         {hasRenownedDeveloper(item) && (
                           <span className="renowned-dev-badge" title="GMGN 将该开发者钱包标记为 renowned 或 KOL；不等同于官方身份认证">知名开发者</span>
                         )}
-                        {watchedKeys.has(item.key) && <span className="watched-mark" title="已收藏"><StarIcon filled /></span>}
                         <ExternalLinkIcon />
                       </span>
                     </a>
@@ -279,6 +298,14 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
                     >
                       <SearchIcon />
                     </a>
+                    {!showWatchHits && (
+                      <QuickWatchButton
+                        item={item}
+                        watched={watchedKeys.has(item.key)}
+                        busy={watchBusyKey === item.key}
+                        onToggle={onToggleWatch}
+                      />
+                    )}
                     {showWatchHits && (
                       <button
                         className="watch-remove-inline"
@@ -388,7 +415,15 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
                   <RemoveIcon />
                   <span>{watchBusyKey === item.key ? "移除中" : "移除"}</span>
                 </button>
-              ) : watchedKeys.has(item.key) && <span className="mobile-watch-mark" title="已收藏"><StarIcon filled /></span>}
+              ) : (
+                <QuickWatchButton
+                  item={item}
+                  watched={watchedKeys.has(item.key)}
+                  busy={watchBusyKey === item.key}
+                  mobile
+                  onToggle={onToggleWatch}
+                />
+              )}
               <div className={`mobile-score score-${scoreTone(item.score)}`}><strong>{item.score}</strong><span>分</span></div>
             </div>
             <div className="mobile-token-tags">
