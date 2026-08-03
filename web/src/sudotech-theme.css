@@ -475,7 +475,7 @@ th:nth-child(n+6) { width: 78px; }
 th:last-child { width: 68px; }
 
 tbody tr {
-  height: 68px;
+  height: 78px;
   border-color: var(--border-soft);
 }
 
@@ -584,6 +584,52 @@ td {
 .token-name {
   color: #72868b;
   font-size: 9px;
+}
+
+.developer-history-summary {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+  color: #63787d;
+  font-size: 7px;
+  line-height: 1.25;
+}
+
+.developer-history-summary.is-pending {
+  color: #9aa9ac;
+}
+
+.developer-token-count {
+  flex: 0 0 auto;
+  padding: 2px 4px;
+  border: 1px solid #b9ded5;
+  border-radius: 4px;
+  background: #edf9f6;
+  color: var(--brand-deep);
+  font-weight: 800;
+}
+
+.developer-ath-list {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.developer-ath-list i {
+  color: #9a6b1e;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.developer-ath-list b {
+  overflow: hidden;
+  color: #607278;
+  font-weight: 700;
+  text-overflow: ellipsis;
 }
 
 .twitter-contract-search {
@@ -993,6 +1039,112 @@ td {
 
 .inspector-heading p {
   color: var(--muted);
+}
+
+.same-name-benchmark {
+  margin-top: 14px;
+  padding: 12px 13px;
+  border: 1px solid #9bd8ca;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #e8f8f4 0%, #f8fcfb 66%);
+  box-shadow: 0 8px 22px rgba(18, 164, 137, 0.08);
+}
+
+.same-name-benchmark.is-current {
+  border-color: #79cbb9;
+  background: linear-gradient(135deg, #ddf5ef, #f6fcfa);
+}
+
+.same-name-benchmark.is-unavailable {
+  border-color: var(--border);
+  background: #f7faf9;
+  box-shadow: none;
+}
+
+.same-name-label,
+.same-name-main,
+.same-name-meta {
+  display: flex;
+  align-items: center;
+}
+
+.same-name-label {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.same-name-label strong {
+  color: var(--brand-deep);
+  font-size: 11px;
+}
+
+.same-name-label small {
+  color: var(--subtle);
+  font-size: 8px;
+}
+
+.same-name-main {
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 9px;
+}
+
+.same-name-main > div {
+  display: grid;
+  gap: 2px;
+}
+
+.same-name-main > div:last-child {
+  text-align: right;
+}
+
+.same-name-main strong {
+  color: #17323b;
+  font-size: 16px;
+}
+
+.same-name-main > div:last-child strong {
+  color: #087f6d;
+  font-variant-numeric: tabular-nums;
+}
+
+.same-name-main span,
+.same-name-benchmark > p {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.same-name-benchmark > p {
+  margin: 9px 0 0;
+}
+
+.same-name-meta {
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(18, 164, 137, 0.14);
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.same-name-meta code {
+  font-family: "Cascadia Code", Consolas, monospace;
+}
+
+.same-name-meta a {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--brand-deep);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.same-name-meta a svg {
+  width: 10px;
+  height: 10px;
 }
 
 .watch-button {
@@ -1424,6 +1576,99 @@ td {
   border-color: #a9d9cd;
   background: var(--healthy-soft);
   color: var(--brand-deep);
+}
+
+.developer-history-total {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  padding: 0 8px;
+  border: 1px solid #e3c77f;
+  border-radius: 7px;
+  background: #fff9e8;
+  color: #946319;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.developer-ath-ranking {
+  display: grid;
+  gap: 7px;
+}
+
+.developer-ath-ranking a {
+  display: grid;
+  grid-template-columns: 23px minmax(0, 1fr) auto 13px;
+  align-items: center;
+  gap: 8px;
+  min-height: 50px;
+  padding: 7px 9px;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: #fff;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+}
+
+.developer-ath-ranking a:hover {
+  border-color: #b8deda;
+  box-shadow: 0 8px 20px rgba(31, 78, 86, 0.07);
+  transform: translateY(-1px);
+}
+
+.developer-rank {
+  display: inline-flex;
+  width: 23px;
+  height: 23px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #edf4f4;
+  color: #5f757a;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.developer-rank.rank-1 { background: #fff2bd; color: #9a6614; }
+.developer-rank.rank-2 { background: #edf2f4; color: #60727a; }
+.developer-rank.rank-3 { background: #f8e8d9; color: #9c6338; }
+
+.developer-history-token,
+.developer-ath-value {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.developer-history-token strong {
+  overflow: hidden;
+  color: #244b52;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.developer-history-token small,
+.developer-ath-value small {
+  color: var(--muted);
+  font-size: 7px;
+}
+
+.developer-ath-value {
+  justify-items: end;
+}
+
+.developer-ath-value strong {
+  color: #b47717;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.developer-ath-ranking svg {
+  width: 12px;
+  height: 12px;
+  color: #7d9195;
 }
 
 .kol-cost-grid .positive-value {
@@ -1887,6 +2132,42 @@ td {
     font-size: 8px;
   }
 
+  .mobile-developer-history {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 7px;
+    padding: 8px 10px;
+    border: 1px solid #d8e9e5;
+    border-radius: 10px;
+    background: #f5fbf9;
+    font-size: 8px;
+  }
+
+  .mobile-developer-history.is-pending {
+    display: block;
+    color: #849599;
+  }
+
+  .mobile-developer-history .developer-token-count {
+    min-height: 21px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .mobile-developer-history .developer-ath-list {
+    flex-wrap: wrap;
+    overflow: visible;
+    white-space: normal;
+  }
+
+  .mobile-developer-history .developer-ath-list b {
+    padding: 3px 5px;
+    border-radius: 5px;
+    background: #fff;
+    color: #456068;
+  }
+
   .mobile-token-list .lifetime-trend {
     width: 100%;
     grid-template-columns: minmax(74px, auto) 1fr;
@@ -2025,6 +2306,7 @@ td {
   }
 
   .inspector {
+    display: none;
     position: fixed;
     inset: 0;
     z-index: 100;
@@ -2034,8 +2316,7 @@ td {
     padding: 0 16px 32px;
     border: 0;
     background: #fbfdfd;
-    transform: translateX(102%);
-    transition: transform 220ms ease, visibility 220ms;
+    transform: none;
     visibility: hidden;
     overscroll-behavior: contain;
     scrollbar-width: none;
@@ -2046,7 +2327,7 @@ td {
   }
 
   .workspace.mobile-detail-visible .inspector {
-    transform: translateX(0);
+    display: block;
     visibility: visible;
   }
 

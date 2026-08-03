@@ -147,6 +147,31 @@ function SignalCount({ item, field, kind }) {
   );
 }
 
+function DeveloperHistory({ item, mobile = false }) {
+  const history = item.developerHistory;
+  if (history?.status !== "ready") {
+    return <div className={`developer-history-summary ${mobile ? "mobile-developer-history" : ""} is-pending`}>开发履历待查</div>;
+  }
+  const count = Number.isFinite(history.totalCreatedCount) ? history.totalCreatedCount : "—";
+  const topTokens = Array.isArray(history.topTokens) ? history.topTokens : [];
+  const title = topTokens.length
+    ? topTokens.map((token, index) => `${index + 1}. ${token.symbol} ${money(token.athMarketCap)}`).join("；")
+    : "未返回其他历史代币";
+  return (
+    <div className={`developer-history-summary ${mobile ? "mobile-developer-history" : ""}`} title={title}>
+      <span className="developer-token-count">累计 {history.countIsMinimum ? "≥" : ""}{count} 币</span>
+      <span className="developer-ath-list">
+        <i>ATH Top3</i>
+        {topTokens.length
+          ? topTokens.map((token, index) => (
+            <b key={token.address}>{index + 1}.{token.symbol}{mobile ? ` ${money(token.athMarketCap)}` : ""}</b>
+          ))
+          : <b>暂无历史币</b>}
+      </span>
+    </div>
+  );
+}
+
 function openOnKeyboard(event, item, onSelect) {
   if (event.key === "Enter" || event.key === " ") {
     event.preventDefault();
@@ -232,6 +257,7 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
                       {narrativeFor(item).category}
                     </span>
                   </span>
+                  <DeveloperHistory item={item} />
                 </div>
               </td>
               <td className="trend-cell"><LifetimeTrend item={item} /></td>
@@ -330,6 +356,7 @@ export default function TokenTable({ items, selectedKey, watchedKeys, showWatchH
               </span>
             </div>
             <p className="mobile-narrative"><strong>叙事</strong>{narrativeFor(item).summary}</p>
+            <DeveloperHistory item={item} mobile />
             <LifetimeTrend item={item} />
             <div className="mobile-token-metrics">
               <div><span>市值</span><MarketCap value={item.marketCap} /></div>

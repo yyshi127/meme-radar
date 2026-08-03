@@ -140,6 +140,7 @@ export function mergeMarketRow(candidate, row, source, stage = null) {
   const links = row.link && typeof row.link === "object" ? row.link : null;
   const stats = row.stat && typeof row.stat === "object" ? row.stat : null;
   const walletStats = row.wallet_tags_stat && typeof row.wallet_tags_stat === "object" ? row.wallet_tags_stat : null;
+  const developer = row.dev && typeof row.dev === "object" ? row.dev : null;
 
   put(candidate, "symbol", cleanText(first(row, ["symbol", "trans_symbol"]), candidate.symbol));
   put(candidate, "name", cleanText(first(row, ["name", "trans_name"]), candidate.name));
@@ -170,6 +171,7 @@ export function mergeMarketRow(candidate, row, source, stage = null) {
   put(candidate, "website", cleanText(row.website ?? links?.website, candidate.website));
   put(candidate, "telegram", cleanText(row.telegram ?? links?.telegram, candidate.telegram));
   put(candidate, "narrativeDescription", cleanText(row.description ?? links?.description, "", 280));
+  put(candidate, "creatorAddress", cleanText(developer?.creator_address ?? row.creator_address, "", 80));
   candidate.hasSocial = Boolean(candidate.hasSocial || bool(first(row, ["has_at_least_one_social"])) || row.twitter_username || row.twitter || row.website || row.telegram || links?.twitter_username || links?.website || links?.telegram);
   put(candidate, "isHoneypot", bool(row.is_honeypot));
   put(candidate, "isWashTrading", bool(row.is_wash_trading));

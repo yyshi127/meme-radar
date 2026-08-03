@@ -1,4 +1,4 @@
-const CACHE_NAME = "meme-radar-shell-v2";
+const CACHE_NAME = "meme-radar-shell-v3";
 const APP_SHELL = ["/", "/discovery", "/manifest.webmanifest", "/icons/meme-radar.svg"];
 
 self.addEventListener("install", (event) => {

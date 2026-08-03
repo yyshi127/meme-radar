@@ -32,7 +32,8 @@ async function desktopQa() {
   await page.locator("tbody tr").first().waitFor({ timeout: 15_000 });
 
   assert.equal(await page.title(), "猎星榜 · Meme Radar");
-  assert.equal((await page.locator("h1").textContent()).trim(), "猎星榜");
+  assert.equal((await page.locator("h1").textContent()).trim(), "Meme Radar");
+  assert.match((await page.locator(".brand-block p").textContent()).trim(), /^猎星榜/);
   assert.equal(await page.locator('.page-nav a[aria-current="page"]').textContent().then((text) => text.trim().slice(0, 3)), "猎星榜");
   assert.ok(await page.getByRole("columnheader", { name: "持币地址" }).isVisible());
   assert.ok(await page.getByRole("columnheader", { name: "创建走势" }).isVisible());
@@ -45,6 +46,9 @@ async function desktopQa() {
   assert.ok(await page.getByText("验证与历史置信度").isVisible());
   assert.ok(await page.getByText("Top100 筹码结构").isVisible());
   assert.ok(await page.locator(".metric-grid").getByText("安全分").isVisible());
+  assert.ok(await page.locator(".same-name-benchmark").isVisible());
+  assert.ok(await page.getByText("开发者历史战绩").isVisible());
+  assert.ok(await page.locator("tbody tr").first().locator(".developer-history-summary").isVisible());
 
   const addWatch = page.getByRole("button", { name: "加入收藏" });
   const wasWatched = await addWatch.count() === 0;
@@ -54,7 +58,7 @@ async function desktopQa() {
     await page.getByRole("link", { name: /验金榜/ }).click();
     await page.waitForLoadState("networkidle");
     assert.equal(new URL(page.url()).pathname, "/verified");
-    assert.equal((await page.locator("h1").textContent()).trim(), "验金榜");
+    assert.match((await page.locator(".brand-block p").textContent()).trim(), /^验金榜/);
     await page.getByRole("button", { name: "收藏", exact: true }).click();
     assert.ok(await page.locator("tbody tr").filter({ hasText: symbol }).count() >= 1, "收藏列表应立即显示代币");
     await page.reload({ waitUntil: "networkidle" });
@@ -70,7 +74,7 @@ async function desktopQa() {
   } else {
     await page.getByRole("link", { name: /验金榜/ }).click();
     await page.waitForLoadState("networkidle");
-    assert.equal((await page.locator("h1").textContent()).trim(), "验金榜");
+    assert.match((await page.locator(".brand-block p").textContent()).trim(), /^验金榜/);
     await page.getByRole("link", { name: /猎星榜/ }).click();
     await page.waitForLoadState("networkidle");
   }
@@ -138,17 +142,36 @@ async function mobileQa() {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "zh-CN" });
   const page = await context.newPage();
   await page.goto(`${url}/verified`, { waitUntil: "networkidle" });
-  if (await page.locator("tbody tr").count() === 0) await page.getByRole("button", { name: "全部", exact: true }).click();
-  await page.locator("tbody tr").first().waitFor({ timeout: 15_000 });
-  assert.ok((await page.locator("body").evaluate((body) => body.scrollWidth)) <= 390, "页面主体不应横向溢出");
+  if (await page.locator(".mobile-token-card").count() === 0) await page.getByRole("button", { name: "全部", exact: true }).click();
+  await page.locator(".mobile-token-card").first().waitFor({ timeout: 15_000 });
+  const mobileScrollWidth = await page.locator("body").evaluate((body) => body.scrollWidth);
+  if (mobileScrollWidth > 390) {
+    const overflow = await page.locator("body").evaluate(() => [...document.querySelectorAll("body *")]
+      .map((element) => ({
+        tag: element.tagName,
+        className: String(element.className || "").slice(0, 100),
+        left: Math.round(element.getBoundingClientRect().left),
+        right: Math.round(element.getBoundingClientRect().right),
+        width: Math.round(element.getBoundingClientRect().width)
+      }))
+      .filter((item) => item.right > window.innerWidth + 1 || item.left < -1)
+      .slice(0, 12));
+    console.log(JSON.stringify({ mobileScrollWidth, overflow }));
+  }
+  assert.ok(mobileScrollWidth <= 390, "页面主体不应横向溢出");
   assert.ok(await page.locator(".table-region").isVisible());
-  assert.ok(await page.locator(".inspector").isVisible());
-  assert.equal((await page.locator("h1").textContent()).trim(), "验金榜");
+  assert.equal(await page.locator(".inspector").isVisible(), false);
+  assert.match((await page.locator(".brand-block p").textContent()).trim(), /^验金榜/);
   assert.ok(await page.getByRole("link", { name: /猎星榜/ }).isVisible());
+  await page.locator(".mobile-token-card").first().click();
+  await page.locator(".inspector").waitFor({ state: "visible" });
   assert.ok(await page.getByRole("button", { name: /加入收藏|取消收藏/ }).isVisible());
+  assert.ok((await page.locator("body").evaluate((body) => body.scrollWidth)) <= 390, "打开详情后也不应横向溢出");
+  assert.ok(await page.locator(".same-name-benchmark").isVisible());
   assert.ok(await page.locator(".mobile-token-card").first().locator(".lifetime-trend").isVisible());
   assert.ok(await page.locator(".mobile-token-card").first().locator(".market-cap").isVisible());
   assert.ok(await page.locator(".mobile-token-card").first().locator(".twitter-contract-search").isVisible());
+  assert.ok(await page.locator(".mobile-token-card").first().locator(".mobile-developer-history").isVisible());
   assert.match(await page.locator(".gmgn-app-action").getAttribute("href"), /^intent:\/\/gmgn\.ai\//);
   assert.match(await page.locator(".mobile-gmgn-app-link").first().getAttribute("href"), /package=com\.gmgn\.app/);
   assert.match(await page.locator(".mobile-gmgn-web-link").first().getAttribute("href"), /^https:\/\/gmgn\.ai\//);

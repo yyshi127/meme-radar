@@ -96,6 +96,40 @@ function hitTone(count) {
   return "empty";
 }
 
+function SameNameBenchmark({ item }) {
+  const reference = item.sameNameLeader;
+  const leader = reference?.leader;
+  if (reference?.status !== "ready" || !leader) {
+    return (
+      <section className="same-name-benchmark is-unavailable">
+        <div className="same-name-label"><strong>同名最高市值</strong><small>按代码精确匹配</small></div>
+        <p>{reference?.status === "empty" ? "未找到可验证的同代码市值样本" : "本轮同名市值查询暂不可用"}</p>
+      </section>
+    );
+  }
+  const multiple = Number.isFinite(reference.marketCapMultiple)
+    ? reference.marketCapMultiple >= 10 ? reference.marketCapMultiple.toFixed(0) : reference.marketCapMultiple.toFixed(1)
+    : null;
+  return (
+    <section className={`same-name-benchmark ${reference.isCurrent ? "is-current" : ""}`}>
+      <div className="same-name-label">
+        <strong>同名最高市值</strong>
+        <small>按代码精确匹配 · DexScreener</small>
+      </div>
+      <div className="same-name-main">
+        <div><strong>{leader.symbol}</strong><span>{leader.name}</span></div>
+        <div><strong>{money(leader.marketCap)}</strong><span>{reference.isCurrent ? "当前币已是第一" : multiple ? `当前币的 ${multiple} 倍` : "同名市值第一"}</span></div>
+      </div>
+      <div className="same-name-meta">
+        <span className={`chain chain-${leader.chain}`}>{leader.chain.toUpperCase()}</span>
+        <code title={leader.address}>{shortWallet(leader.address)}</code>
+        <span>{reference.matchCount} 枚精确同代码样本</span>
+        {leader.pairUrl && <a href={leader.pairUrl} target="_blank" rel="noopener noreferrer">查看对标 <ExternalLinkIcon /></a>}
+      </div>
+    </section>
+  );
+}
+
 export default function Inspector({ item, watched, watchBusy, calibration, page, onToggleWatch, onClose }) {
   const [copied, setCopied] = useState(false);
   if (!item) {
@@ -154,6 +188,8 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
           </div>
         </div>
       </div>
+
+      <SameNameBenchmark item={item} />
 
       {item.isLive === false && (
         <div className="stale-watch" role="status">本轮扫描未命中，正在保留收藏时的最后快照。</div>
@@ -261,6 +297,39 @@ export default function Inspector({ item, watched, watchBusy, calibration, page,
           </div>
         </div>
         <p className="calibration-note">{calibration?.definition || "达到足够的 6 小时成熟样本后才显示经验概率。"}</p>
+      </section>
+
+      <section className="inspector-section developer-history-section">
+        <div className="section-heading-row">
+          <h3>开发者历史战绩</h3>
+          <span className="developer-history-total">
+            累计 {item.developerHistory?.countIsMinimum ? "≥" : ""}
+            {Number.isFinite(item.developerHistory?.totalCreatedCount) ? item.developerHistory.totalCreatedCount : "—"} 币
+          </span>
+        </div>
+        {item.developerHistory?.status === "ready" ? (
+          item.developerHistory.topTokens?.length ? (
+            <div className="developer-ath-ranking">
+              {item.developerHistory.topTokens.map((token, index) => (
+                <a
+                  key={token.address}
+                  href={gmgnTokenUrl(item.chain, token.address)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span className={`developer-rank rank-${index + 1}`}>{index + 1}</span>
+                  <span className="developer-history-token">
+                    <strong>{token.symbol}</strong>
+                    <small>{token.migrated ? "已迁移" : "未迁移"}{token.cto ? " · CTO" : ""}</small>
+                  </span>
+                  <span className="developer-ath-value"><small>历史最高市值</small><strong>{money(token.athMarketCap)}</strong></span>
+                  <ExternalLinkIcon />
+                </a>
+              ))}
+            </div>
+          ) : <p className="list-empty">GMGN 未返回该开发者的其他历史代币。</p>
+        ) : <p className="list-empty">开发者地址或历史发币数据暂时不可用，将在后续扫描中重试。</p>}
+        <p className="holder-note">Top3 明确排除当前代币，并按 GMGN 历史最高市值排序；累计数量包含当前代币。</p>
       </section>
 
       <section className="inspector-section">

@@ -3,7 +3,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkConfig, gmgn } from "./gmgn.mjs";
 import { enrichDeepCandidates } from "./deep-analysis.mjs";
+import { enrichDeveloperHistories } from "./developer-history.mjs";
 import { enrichLifetimeTrends } from "./lifetime-trend.mjs";
+import { enrichSameNameLeaders } from "./same-name.mjs";
 import { radarStore } from "./store.mjs";
 import { refreshWatchMarkets } from "./watch-market.mjs";
 import {
@@ -195,6 +197,31 @@ export async function scan(config, options = {}) {
     cacheSeconds: config.klineCacheSeconds ?? 240,
     notices
   });
+  const developerTargetKeys = new Set(watchedKeys);
+  for (const candidate of sourceCandidates) {
+    const discoveryPreview = scoreCandidateEarly(candidate, { now, ...config });
+    const safetyPreview = scoreCandidate(candidate, { now, ...config, strategy: "safety", requireVerification: true });
+    if ([discoveryPreview.priority, safetyPreview.priority].some((priority) => ["ALERT", "WATCH"].includes(priority))) {
+      developerTargetKeys.add(candidate.key);
+    }
+  }
+  const [developerHistoryAnalysis, sameNameAnalysis] = await Promise.all([
+    enrichDeveloperHistories(sourceCandidates, developerTargetKeys, {
+      gmgn,
+      store: radarStore,
+      concurrency: config.developerHistoryConcurrency ?? 3,
+      cacheSeconds: config.developerHistoryCacheSeconds ?? 6 * 3600,
+      failureCacheSeconds: config.developerHistoryFailureCacheSeconds ?? 30 * 60,
+      notices
+    }),
+    enrichSameNameLeaders(sourceCandidates, developerTargetKeys, {
+      store: radarStore,
+      concurrency: config.sameNameConcurrency ?? 3,
+      cacheSeconds: config.sameNameCacheSeconds ?? 300,
+      failureCacheSeconds: config.sameNameFailureCacheSeconds ?? 30 * 60,
+      notices
+    })
+  ]);
 
   const oldState = await jsonFile(statePath, { candidates: {}, discoveryCandidates: {} });
   const nextState = { candidates: {}, discoveryCandidates: {} };
@@ -262,7 +289,14 @@ export async function scan(config, options = {}) {
     alerts: decoratedAlerts,
     errors,
     notices,
-    deepAnalysis: { selected: deepAnalysis.selected, lifetimeTrends: trendAnalysis, outcomeSamples, watchMarketsRefreshed },
+    deepAnalysis: {
+      selected: deepAnalysis.selected,
+      lifetimeTrends: trendAnalysis,
+      developerHistories: developerHistoryAnalysis,
+      sameNameLeaders: sameNameAnalysis,
+      outcomeSamples,
+      watchMarketsRefreshed
+    },
     calibration: calibration.report,
     strategies: {
       discovery: { name: "猎星榜", version: "early-v3", description: "原版评分加持币地址 >300、市值 $10k–$2M，并对已检测 Rug 风险一票否决；安全数据未完成时仅观察" },

@@ -404,3 +404,10 @@ test("猎星 early-v3 只允许 $10k–$2M 市值区间", () => {
     assert.equal(result.hardStops.some((reason) => reason.includes("市值不在")), shouldBlock, `${marketCap} 边界判断错误`);
   }
 });
+
+test("token info merges the developer creator address", () => {
+  const item = candidate();
+  const creatorAddress = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  mergeMarketRow(item, { dev: { creator_address: creatorAddress } }, "token-info");
+  assert.equal(item.creatorAddress, creatorAddress);
+});

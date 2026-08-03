@@ -45,6 +45,20 @@ export function createRadarStore(file = path.join(root, "data", "radar.sqlite"))
       points_json TEXT NOT NULL,
       error TEXT
     );
+    CREATE TABLE IF NOT EXISTS developer_history_cache (
+      key TEXT PRIMARY KEY,
+      checked_at INTEGER NOT NULL,
+      status TEXT NOT NULL,
+      payload_json TEXT,
+      error TEXT
+    );
+    CREATE TABLE IF NOT EXISTS same_name_cache (
+      key TEXT PRIMARY KEY,
+      checked_at INTEGER NOT NULL,
+      status TEXT NOT NULL,
+      payload_json TEXT,
+      error TEXT
+    );
     CREATE TABLE IF NOT EXISTS tracked_tokens (
       key TEXT PRIMARY KEY,
       chain TEXT NOT NULL,
@@ -113,6 +127,20 @@ export function createRadarStore(file = path.join(root, "data", "radar.sqlite"))
       ON CONFLICT(key) DO UPDATE SET checked_at=excluded.checked_at, resolution=excluded.resolution,
         from_ts=excluded.from_ts, to_ts=excluded.to_ts, points_json=excluded.points_json,
         error=excluded.error
+    `),
+    getDeveloperHistoryCache: db.prepare("SELECT * FROM developer_history_cache WHERE key=?"),
+    putDeveloperHistoryCache: db.prepare(`
+      INSERT INTO developer_history_cache(key, checked_at, status, payload_json, error)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(key) DO UPDATE SET checked_at=excluded.checked_at, status=excluded.status,
+        payload_json=excluded.payload_json, error=excluded.error
+    `),
+    getSameNameCache: db.prepare("SELECT * FROM same_name_cache WHERE key=?"),
+    putSameNameCache: db.prepare(`
+      INSERT INTO same_name_cache(key, checked_at, status, payload_json, error)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(key) DO UPDATE SET checked_at=excluded.checked_at, status=excluded.status,
+        payload_json=excluded.payload_json, error=excluded.error
     `),
     putTracked: db.prepare(`
       INSERT INTO tracked_tokens(key, chain, address, first_seen, last_seen, initial_price,
@@ -234,6 +262,48 @@ export function createRadarStore(file = path.join(root, "data", "radar.sqlite"))
       fromTs,
       toTs,
       JSON.stringify(points),
+      error
+    );
+  }
+
+  function getDeveloperHistoryCache(key, maxAgeSeconds = Infinity) {
+    const row = statements.getDeveloperHistoryCache.get(key);
+    if (!row || Math.floor(Date.now() / 1000) - row.checked_at > maxAgeSeconds) return null;
+    return {
+      status: row.status,
+      checkedAt: Number(row.checked_at),
+      payload: parseJson(row.payload_json),
+      error: row.error || null
+    };
+  }
+
+  function putDeveloperHistoryCache(key, status, payload = null, error = null) {
+    statements.putDeveloperHistoryCache.run(
+      key,
+      Math.floor(Date.now() / 1000),
+      status,
+      payload ? JSON.stringify(payload) : null,
+      error
+    );
+  }
+
+  function getSameNameCache(key, maxAgeSeconds = Infinity) {
+    const row = statements.getSameNameCache.get(key);
+    if (!row || Math.floor(Date.now() / 1000) - row.checked_at > maxAgeSeconds) return null;
+    return {
+      status: row.status,
+      checkedAt: Number(row.checked_at),
+      payload: parseJson(row.payload_json),
+      error: row.error || null
+    };
+  }
+
+  function putSameNameCache(key, status, payload = null, error = null) {
+    statements.putSameNameCache.run(
+      key,
+      Math.floor(Date.now() / 1000),
+      status,
+      payload ? JSON.stringify(payload) : null,
       error
     );
   }
@@ -393,6 +463,10 @@ export function createRadarStore(file = path.join(root, "data", "radar.sqlite"))
     putHolderCache,
     getKlineCache,
     putKlineCache,
+    getDeveloperHistoryCache,
+    putDeveloperHistoryCache,
+    getSameNameCache,
+    putSameNameCache,
     recordCandidates,
     recordExternalObservation,
     dueTrackedTokens,
