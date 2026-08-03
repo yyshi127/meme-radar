@@ -1107,8 +1107,8 @@ td {
 }
 
 .decision-section {
-  border-color: #b7ddd5;
-  background: linear-gradient(145deg, rgba(237, 249, 246, 0.96), rgba(255, 255, 255, 0.96));
+  border-color: #9bcfd5;
+  background: linear-gradient(145deg, #e7f4f6 0%, #f7fbfc 100%);
 }
 
 .decision-section .detail-section-order {
@@ -1120,24 +1120,82 @@ td {
   margin-top: 0;
 }
 
+.decision-metric-grid > div {
+  border-color: transparent !important;
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(25, 72, 82, 0.14) !important;
+}
+
+.decision-section .decision-metric-grid .safety-verified {
+  background: linear-gradient(135deg, #07957c, #087462) !important;
+}
+
+.decision-section .decision-metric-grid .safety-pending {
+  background: linear-gradient(135deg, #c98919, #a76800) !important;
+}
+
+.decision-section .decision-metric-grid .safety-blocked {
+  background: linear-gradient(135deg, #db584f, #b93b35) !important;
+}
+
+.decision-metric-grid .metric-market {
+  background: linear-gradient(135deg, #26758a, #15566b);
+}
+
+.decision-metric-grid .metric-liquidity {
+  background: linear-gradient(135deg, #178c91, #0c686f);
+}
+
+.decision-metric-grid .completeness-complete {
+  background: linear-gradient(135deg, #168d78, #0a6d5f);
+}
+
+.decision-metric-grid .completeness-partial {
+  background: linear-gradient(135deg, #d08b18, #a76a05);
+}
+
+.decision-metric-grid .completeness-low,
+.decision-metric-grid .completeness-unknown {
+  background: linear-gradient(135deg, #d85a51, #aa3e38);
+}
+
+.decision-metric-grid span,
+.decision-metric-grid small {
+  color: rgba(255, 255, 255, 0.78) !important;
+}
+
+.decision-metric-grid strong,
+.decision-metric-grid .safety-verified strong,
+.decision-metric-grid .safety-pending strong,
+.decision-metric-grid .safety-blocked strong,
+.decision-metric-grid .completeness-complete strong,
+.decision-metric-grid .completeness-partial strong,
+.decision-metric-grid .completeness-low strong {
+  color: #fff !important;
+}
+
 .risk-detail {
   border-color: #dce6e7;
 }
 
 .risk-detail-verified {
-  border-color: #b9ddd4;
-  background: linear-gradient(145deg, #f5fbf9, #fff);
+  border-color: #b7ddd4;
+  background: linear-gradient(145deg, #edf8f5, #fbfefd);
 }
 
 .risk-detail-pending {
   border-color: #e8d7aa;
-  background: linear-gradient(145deg, #fffcf4, #fff);
+  background: linear-gradient(145deg, #fff8e8, #fffdf8);
 }
 
 .risk-detail-blocked {
   border-color: #ecc0bb;
-  background: linear-gradient(145deg, #fff6f5, #fff);
+  background: linear-gradient(145deg, #fff0ee, #fff9f8);
 }
+
+.risk-detail-verified .detail-section-order { background: #137f6c; color: #fff; }
+.risk-detail-pending .detail-section-order { background: #ad7008; color: #fff; }
+.risk-detail-blocked .detail-section-order { background: #c5463f; color: #fff; }
 
 .risk-summary-badge {
   min-height: 25px;
@@ -1154,21 +1212,21 @@ td {
 }
 
 .risk-summary-verified {
-  border-color: #a9d9cd;
-  background: var(--healthy-soft);
-  color: var(--brand-deep);
+  border-color: #137f6c;
+  background: #137f6c;
+  color: #fff;
 }
 
 .risk-summary-pending {
-  border-color: #e6cf95;
-  background: var(--watch-soft);
-  color: #946319;
+  border-color: #ad7008;
+  background: #ad7008;
+  color: #fff;
 }
 
 .risk-summary-blocked {
-  border-color: #e9b7b2;
-  background: var(--alert-soft);
-  color: #a33d36;
+  border-color: #c5463f;
+  background: #c5463f;
+  color: #fff;
 }
 
 .risk-list-panel {
@@ -1212,13 +1270,101 @@ td {
   gap: 10px;
 }
 
+.opportunity-detail {
+  border-color: #b7d7e1;
+  background: linear-gradient(145deg, #edf7fa, #fbfdfe);
+}
+
+.opportunity-detail .detail-section-order {
+  background: #26788f;
+  color: #fff;
+}
+
 .opportunity-detail .narrative-card,
 .opportunity-detail .same-name-benchmark {
   margin-top: 0;
 }
 
+.opportunity-detail .same-name-main > div:last-child strong {
+  justify-self: end;
+  padding: 5px 8px;
+  border-radius: 7px;
+  background: #26788f;
+  color: #fff;
+}
+
+.funding-detail {
+  border-color: #d4caeb;
+  background: linear-gradient(145deg, #f4f1fb, #fcfbfe);
+}
+
+.funding-detail .detail-section-order,
+.funding-detail .holder-count {
+  border-color: #6650aa;
+  background: #6650aa;
+  color: #fff;
+}
+
 .funding-detail .kol-cost-grid {
   margin-top: 0;
+}
+
+.funding-detail .kol-cost-grid strong {
+  justify-self: start;
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: #6650aa;
+  color: #fff;
+}
+
+.funding-detail .kol-cost-grid .positive-value,
+.funding-detail .kol-cost-grid .negative-value {
+  color: #fff;
+}
+
+.developer-detail {
+  border-color: #e6cd9e;
+  background: linear-gradient(145deg, #fff7e8, #fffdf8);
+}
+
+.developer-detail .detail-section-order,
+.developer-detail > .detail-section-heading .holder-count {
+  border-color: #a96d12;
+  background: #a96d12;
+  color: #fff;
+}
+
+.developer-detail .developer-history-total {
+  border-color: #a96d12;
+  background: #a96d12;
+  color: #fff;
+}
+
+.developer-detail .developer-ath-value strong {
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: #a96d12;
+  color: #fff;
+}
+
+.evidence-summary {
+  border-color: #b9d4e6;
+  background: linear-gradient(145deg, #edf6fb, #fbfdff);
+}
+
+.evidence-summary .detail-section-order,
+.evidence-summary > .detail-section-heading .verification {
+  border-color: #34739c;
+  background: #34739c;
+  color: #fff;
+}
+
+.evidence-summary .confidence-grid strong {
+  justify-self: start;
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: #34739c;
+  color: #fff;
 }
 
 .confidence-watch-hit {
@@ -1243,6 +1389,13 @@ td {
 .evidence-details {
   padding: 0;
   overflow: hidden;
+  border-color: #ccd9dc;
+  background: linear-gradient(145deg, #f1f5f6, #fbfcfc);
+}
+
+.evidence-details .detail-section-order {
+  background: #536d74;
+  color: #fff;
 }
 
 .evidence-details summary {
