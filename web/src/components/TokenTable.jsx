@@ -175,13 +175,15 @@ function DeveloperHistory({ item, mobile = false }) {
   }
   const count = Number.isFinite(history.totalCreatedCount) ? history.totalCreatedCount : "—";
   const topToken = Array.isArray(history.topTokens) ? history.topTokens[0] : null;
+  const topAthMarketCap = Number(topToken?.athMarketCap);
+  const highlightTopToken = Number.isFinite(topAthMarketCap) && topAthMarketCap > 1_000_000;
   const title = topToken
     ? `开发者 ATH Top1：${topToken.symbol}；历史最高市值 ${money(topToken.athMarketCap)}`
     : "未返回其他历史代币";
   return (
     <div className={`developer-history-summary ${mobile ? "mobile-developer-history" : ""}`} title={title}>
       <span className="developer-token-count">累计 {history.countIsMinimum ? "≥" : ""}{count} 币</span>
-      <span className="developer-ath-list">
+      <span className={`developer-ath-list ${highlightTopToken ? "is-million-plus" : ""}`}>
         <i>开发 ATH Top1</i>
         {topToken
           ? <><b>{topToken.symbol}</b><em>历史最高市值 {money(topToken.athMarketCap)}</em></>
@@ -202,9 +204,11 @@ function SameNameLeader({ item, mobile = false }) {
     );
   }
   const leaderName = leader.name && leader.name !== "?" ? leader.name : leader.symbol;
+  const leaderMarketCap = Number(leader.marketCap);
+  const highlightLeader = Number.isFinite(leaderMarketCap) && leaderMarketCap > 1_000_000;
   return (
     <div
-      className={`same-name-list-summary ${mobile ? "mobile-same-name-summary" : ""}`}
+      className={`same-name-list-summary ${mobile ? "mobile-same-name-summary" : ""} ${highlightLeader ? "is-million-plus" : ""}`}
       title={`同名当前最高市值代币：${leaderName}（${leader.symbol}），当前最高市值 ${money(leader.marketCap)}`}
     >
       <i>同名最高</i>

@@ -765,6 +765,24 @@ td {
   background: linear-gradient(135deg, #f47a42, #dc4c28);
 }
 
+.developer-ath-list.is-million-plus {
+  padding: 4px 6px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, #ff941f, #f05218);
+  box-shadow: 0 5px 13px rgba(238, 87, 19, 0.25);
+}
+
+.developer-ath-list.is-million-plus i,
+.developer-ath-list.is-million-plus b,
+.developer-ath-list.is-million-plus em {
+  color: #fff;
+}
+
+.developer-ath-list.is-million-plus em {
+  padding: 0;
+  background: transparent;
+}
+
 .same-name-list-summary {
   display: flex;
   min-width: 0;
@@ -793,6 +811,25 @@ td {
 
 .same-name-list-summary em {
   background: linear-gradient(135deg, #309cf1, #3769df);
+}
+
+.same-name-list-summary.is-million-plus {
+  padding: 4px 6px;
+  border-radius: 7px;
+  background: #1677f2;
+  box-shadow: 0 5px 13px rgba(22, 119, 242, 0.26);
+}
+
+.same-name-list-summary.is-million-plus i,
+.same-name-list-summary.is-million-plus b,
+.same-name-list-summary.is-million-plus em,
+.same-name-list-summary.is-million-plus small {
+  color: #fff;
+}
+
+.same-name-list-summary.is-million-plus em {
+  padding: 0;
+  background: transparent;
 }
 
 .same-name-list-summary small {
@@ -1784,6 +1821,35 @@ td {
 .same-name-benchmark.is-current {
   border-color: #79cbb9;
   background: linear-gradient(135deg, #ddf5ef, #f6fcfa);
+}
+
+.same-name-benchmark.is-million-plus,
+.same-name-benchmark.is-million-plus.is-current {
+  border-color: #1677f2;
+  background: #1677f2;
+  box-shadow: 0 10px 25px rgba(22, 119, 242, 0.25);
+}
+
+.same-name-benchmark.is-million-plus .same-name-label strong,
+.same-name-benchmark.is-million-plus .same-name-label small,
+.same-name-benchmark.is-million-plus .same-name-main strong,
+.same-name-benchmark.is-million-plus .same-name-main span,
+.same-name-benchmark.is-million-plus .same-name-meta,
+.same-name-benchmark.is-million-plus .same-name-meta .chain,
+.same-name-benchmark.is-million-plus .same-name-meta code,
+.same-name-benchmark.is-million-plus .same-name-meta a {
+  color: #fff;
+}
+
+.same-name-benchmark.is-million-plus .same-name-meta {
+  border-top-color: rgba(255, 255, 255, 0.3);
+}
+
+.opportunity-detail .same-name-benchmark.is-million-plus .same-name-main > div:last-child strong {
+  padding: 0;
+  background: transparent;
+  color: #fff;
+  box-shadow: none;
 }
 
 .same-name-benchmark.is-unavailable {
@@ -2957,6 +3023,11 @@ td {
     min-height: 21px;
     display: inline-flex;
     align-items: center;
+  }
+
+  .mobile-developer-history .developer-ath-list.is-million-plus b {
+    background: rgba(255, 255, 255, 0.17);
+    color: #fff;
   }
 
   .mobile-same-name-summary {

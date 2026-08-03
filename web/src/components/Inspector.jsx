@@ -110,8 +110,10 @@ function SameNameBenchmark({ item }) {
   const multiple = Number.isFinite(reference.marketCapMultiple)
     ? reference.marketCapMultiple >= 10 ? reference.marketCapMultiple.toFixed(0) : reference.marketCapMultiple.toFixed(1)
     : null;
+  const leaderMarketCap = Number(leader.marketCap);
+  const highlightLeader = Number.isFinite(leaderMarketCap) && leaderMarketCap > 1_000_000;
   return (
-    <section className={`same-name-benchmark ${reference.isCurrent ? "is-current" : ""}`}>
+    <section className={`same-name-benchmark ${reference.isCurrent ? "is-current" : ""} ${highlightLeader ? "is-million-plus" : ""}`}>
       <div className="same-name-label">
         <strong>同名最高市值</strong>
         <small>按代码精确匹配 · DexScreener</small>
