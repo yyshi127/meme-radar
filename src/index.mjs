@@ -8,7 +8,7 @@ import { enrichLifetimeTrends } from "./lifetime-trend.mjs";
 import { enrichSameNameLeaders } from "./same-name.mjs";
 import { radarStore } from "./store.mjs";
 import { refreshWatchMarkets } from "./watch-market.mjs";
-import { buildStaleReport, reportHasCandidates } from "./report-resilience.mjs";
+import { buildFreshDataStatus, buildStaleReport, reportHasCandidates } from "./report-resilience.mjs";
 import {
   cleanText,
   escapeMarkdown,
@@ -189,18 +189,16 @@ async function persistStaleReport(config, errors, notices, reason, retryAt = nul
   return result;
 }
 
-function recordRateLimitError(errors, error) {
+function recordRateLimitError(errors, error, previousRetryAt = null) {
   const status = getGmgnRateLimitStatus();
-  const retryAt = error?.retryAt || status.retryAt;
-  errors.push(`GMGN 限流熔断已启动，本轮停止请求；${retryAt || "冷却结束"} 后自动重试`);
+  const retryAt = [previousRetryAt, error?.retryAt, status.retryAt]
+    .filter((value) => Number.isFinite(Date.parse(value)))
+    .sort((a, b) => Date.parse(b) - Date.parse(a))[0] || null;
+  const message = `GMGN 限流熔断已启动；保留本轮最新市场数据，深度数据将在 ${retryAt || "冷却结束"} 后继续补充`;
+  const previousIndex = errors.findIndex((item) => item.startsWith("GMGN 限流熔断已启动"));
+  if (previousIndex >= 0) errors[previousIndex] = message;
+  else errors.push(message);
   return retryAt;
-}
-
-async function preserveIfRateLimited(config, errors, notices) {
-  const status = getGmgnRateLimitStatus();
-  if (!status.blocked) return null;
-  recordRateLimitError(errors, { retryAt: status.retryAt });
-  return persistStaleReport(config, errors, notices, "gmgn_rate_limited", status.retryAt);
 }
 
 export async function scan(config, options = {}) {
@@ -209,21 +207,33 @@ export async function scan(config, options = {}) {
   const errors = [];
   const notices = [];
   let successfulFeeds = 0;
-  try {
-    for (const chain of config.chains) successfulFeeds += await collectChain(book, chain, config, errors, notices);
-  } catch (error) {
-    if (!isGmgnRateLimitError(error)) throw error;
-    const retryAt = recordRateLimitError(errors, error);
-    return persistStaleReport(config, errors, notices, "gmgn_rate_limited", retryAt);
+  let partialReason = null;
+  let rateLimitRetryAt = null;
+  for (const chain of config.chains) {
+    try {
+      successfulFeeds += await collectChain(book, chain, config, errors, notices);
+    } catch (error) {
+      if (!isGmgnRateLimitError(error)) throw error;
+      rateLimitRetryAt = recordRateLimitError(errors, error, rateLimitRetryAt);
+      if (!successfulFeeds && !book.size) {
+        return persistStaleReport(config, errors, notices, "gmgn_rate_limited", rateLimitRetryAt);
+      }
+      partialReason = "base_feeds_rate_limited";
+      break;
+    }
   }
-  if (!successfulFeeds) {
+  if (!successfulFeeds && !book.size) {
     errors.push("GMGN 基础数据源全部失败，本轮保留上次成功榜单");
     return persistStaleReport(config, errors, notices, "all_base_feeds_failed");
   }
   const watchMarketResult = await refreshWatchMarkets(book, { gmgn, store: radarStore, notices });
   const watchMarketsRefreshed = watchMarketResult.refreshed;
-  const watchRateLimited = await preserveIfRateLimited(config, errors, notices);
-  if (watchRateLimited) return watchRateLimited;
+  if (watchMarketResult.rateLimited || getGmgnRateLimitStatus().blocked) {
+    partialReason ||= "enrichment_rate_limited";
+    rateLimitRetryAt = recordRateLimitError(errors, {
+      retryAt: watchMarketResult.retryAt || getGmgnRateLimitStatus().retryAt
+    }, rateLimitRetryAt);
+  }
 
   const now = Math.floor(Date.now() / 1000);
   const sourceCandidates = [...book.values()];
@@ -245,23 +255,44 @@ export async function scan(config, options = {}) {
     gmgn,
     store: radarStore,
     limit: config.deepAnalysisLimit ?? 25,
-    concurrency: config.deepAnalysisConcurrency ?? 3,
+    concurrency: config.deepAnalysisConcurrency ?? 1,
+    requestLimit: getGmgnRateLimitStatus().blocked ? 0 : config.deepAnalysisRequestLimit ?? 3,
     cacheSeconds: config.holderCacheSeconds ?? 1800,
+    failureCacheSeconds: config.holderFailureCacheSeconds ?? 1800,
+    rateLimitCooldownSeconds: config.holderRateLimitCooldownSeconds ?? 1800,
     watchedKeys,
     notices
   });
-  const deepRateLimited = await preserveIfRateLimited(config, errors, notices);
-  if (deepRateLimited) return deepRateLimited;
-  const trendAnalysis = await enrichLifetimeTrends(sourceCandidates, deepAnalysis.selectedKeys, {
-    gmgn,
-    store: radarStore,
-    now,
-    concurrency: config.klineConcurrency ?? 3,
-    cacheSeconds: config.klineCacheSeconds ?? 240,
-    notices
-  });
-  const trendRateLimited = await preserveIfRateLimited(config, errors, notices);
-  if (trendRateLimited) return trendRateLimited;
+  if (deepAnalysis.rateLimited || getGmgnRateLimitStatus().blocked) {
+    partialReason ||= "enrichment_rate_limited";
+    rateLimitRetryAt = recordRateLimitError(
+      errors,
+      { retryAt: deepAnalysis.retryAt || getGmgnRateLimitStatus().retryAt },
+      rateLimitRetryAt
+    );
+  }
+  let trendAnalysis = {
+    selected: deepAnalysis.selectedKeys.length,
+    ready: 0,
+    failed: 0,
+    skipped: "rate_limited"
+  };
+  if (!getGmgnRateLimitStatus().blocked) {
+    trendAnalysis = await enrichLifetimeTrends(sourceCandidates, deepAnalysis.selectedKeys, {
+      gmgn,
+      store: radarStore,
+      now,
+      concurrency: config.klineConcurrency ?? 3,
+      cacheSeconds: config.klineCacheSeconds ?? 240,
+      notices
+    });
+  }
+  if (trendAnalysis.rateLimited || getGmgnRateLimitStatus().blocked) {
+    partialReason ||= "enrichment_rate_limited";
+    rateLimitRetryAt = recordRateLimitError(errors, {
+      retryAt: trendAnalysis.retryAt || getGmgnRateLimitStatus().retryAt
+    }, rateLimitRetryAt);
+  }
   const developerTargetKeys = new Set();
   const sameNameTargetKeys = new Set();
   for (const candidate of sourceCandidates) {
@@ -276,25 +307,43 @@ export async function scan(config, options = {}) {
     if (snapshot.developerHistory?.status !== "ready") developerTargetKeys.add(candidate.key);
     if (!["ready", "empty"].includes(snapshot.sameNameLeader?.status)) sameNameTargetKeys.add(candidate.key);
   }
-  const [developerHistoryAnalysis, sameNameAnalysis] = await Promise.all([
-    enrichDeveloperHistories(researchCandidates, developerTargetKeys, {
+  const developerOptions = {
       gmgn,
       store: radarStore,
       concurrency: config.developerHistoryConcurrency ?? 3,
       cacheSeconds: config.developerHistoryCacheSeconds ?? 6 * 3600,
       failureCacheSeconds: config.developerHistoryFailureCacheSeconds ?? 30 * 60,
       notices
-    }),
-    enrichSameNameLeaders(researchCandidates, sameNameTargetKeys, {
+  };
+  const sameNameOptions = {
       store: radarStore,
       concurrency: config.sameNameConcurrency ?? 3,
       cacheSeconds: config.sameNameCacheSeconds ?? 300,
       failureCacheSeconds: config.sameNameFailureCacheSeconds ?? 30 * 60,
       notices
-    })
-  ]);
-  const developerRateLimited = await preserveIfRateLimited(config, errors, notices);
-  if (developerRateLimited) return developerRateLimited;
+  };
+  let developerHistoryAnalysis = {
+    selected: developerTargetKeys.size,
+    ready: 0,
+    failed: 0,
+    cached: 0,
+    skipped: "rate_limited"
+  };
+  let sameNameAnalysis;
+  if (getGmgnRateLimitStatus().blocked) {
+    sameNameAnalysis = await enrichSameNameLeaders(researchCandidates, sameNameTargetKeys, sameNameOptions);
+  } else {
+    [developerHistoryAnalysis, sameNameAnalysis] = await Promise.all([
+      enrichDeveloperHistories(researchCandidates, developerTargetKeys, developerOptions),
+      enrichSameNameLeaders(researchCandidates, sameNameTargetKeys, sameNameOptions)
+    ]);
+  }
+  if (developerHistoryAnalysis.rateLimited || getGmgnRateLimitStatus().blocked) {
+    partialReason ||= "enrichment_rate_limited";
+    rateLimitRetryAt = recordRateLimitError(errors, {
+      retryAt: developerHistoryAnalysis.retryAt || getGmgnRateLimitStatus().retryAt
+    }, rateLimitRetryAt);
+  }
   for (const { candidate } of watchMarketResult.researchEntries) radarStore.updateWatchResearch(candidate, now);
 
   const oldState = await jsonFile(statePath, { candidates: {}, discoveryCandidates: {} });
@@ -348,9 +397,18 @@ export async function scan(config, options = {}) {
   }
   radarStore.recordCandidates([...trackingCandidates.values()], now);
   radarStore.syncWatchSnapshots([...discoveryCandidates, ...candidates], now);
-  const outcomeSamples = await sampleTrackedOutcomes(now, new Set(candidates.map((candidate) => candidate.key)), config, notices);
-  const outcomeRateLimited = await preserveIfRateLimited(config, errors, notices);
-  if (outcomeRateLimited) return outcomeRateLimited;
+  let outcomeSamples = 0;
+  if (!getGmgnRateLimitStatus().blocked) {
+    outcomeSamples = await sampleTrackedOutcomes(now, new Set(candidates.map((candidate) => candidate.key)), config, notices);
+  }
+  if (getGmgnRateLimitStatus().blocked) {
+    partialReason ||= "enrichment_rate_limited";
+    rateLimitRetryAt = recordRateLimitError(
+      errors,
+      { retryAt: getGmgnRateLimitStatus().retryAt },
+      rateLimitRetryAt
+    );
+  }
   const calibration = radarStore.calibrationContext(config.calibrationMinSamples ?? 50);
   candidates = radarStore.decorateCandidates(candidates, calibration);
   discoveryCandidates = radarStore.decorateCandidates(discoveryCandidates, calibration);
@@ -379,7 +437,10 @@ export async function scan(config, options = {}) {
       discovery: { name: "猎星榜", version: "early-v3", description: "原版评分加持币地址 >300、市值 $10k–$2M，并对已检测 Rug 风险一票否决；安全数据未完成时仅观察" },
       safety: { name: "验金榜", description: "通过 Top100、关联钱包和合约安全进行严格确认" }
     },
-    dataStatus: { stale: false, reason: null, lastSuccessfulAt: generatedAt, retryAt: null }
+    dataStatus: buildFreshDataStatus(generatedAt, {
+      reason: partialReason,
+      retryAt: rateLimitRetryAt
+    })
   };
   await mkdir(dataDir, { recursive: true });
   await mkdir(outputDir, { recursive: true });

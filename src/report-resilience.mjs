@@ -5,6 +5,17 @@ export function reportHasCandidates(report) {
   ));
 }
 
+export function buildFreshDataStatus(generatedAt, options = {}) {
+  const reason = options.reason || null;
+  return {
+    stale: false,
+    partial: Boolean(reason),
+    reason,
+    lastSuccessfulAt: generatedAt,
+    retryAt: options.retryAt || null
+  };
+}
+
 export function buildStaleReport(previous, options = {}) {
   const generatedAt = options.generatedAt || new Date().toISOString();
   const base = previous || {

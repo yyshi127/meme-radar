@@ -84,7 +84,14 @@ test("all selected candidates are enriched while one developer is queried only o
   };
 
   const first = await enrichDeveloperHistories(candidates, selected, { gmgn, store, concurrency: 2 });
-  assert.deepEqual(first, { selected: 2, ready: 2, failed: 0, cached: 0 });
+  assert.deepEqual(first, {
+    selected: 2,
+    ready: 2,
+    failed: 0,
+    cached: 0,
+    rateLimited: false,
+    retryAt: null
+  });
   assert.equal(infoCalls, 2);
   assert.equal(historyCalls, 1);
   assert.equal(candidates[0].developerHistory.topTokens[0].symbol, "FIRST");
@@ -96,5 +103,12 @@ test("all selected candidates are enriched while one developer is queried only o
     gmgn: async () => assert.fail("fresh GMGN request should not run for cached candidates"),
     store
   });
-  assert.deepEqual(cached, { selected: 2, ready: 2, failed: 0, cached: 2 });
+  assert.deepEqual(cached, {
+    selected: 2,
+    ready: 2,
+    failed: 0,
+    cached: 2,
+    rateLimited: false,
+    retryAt: null
+  });
 });

@@ -1,4 +1,5 @@
 import { cleanText, isValidAddress, mergeMarketRow } from "./core.mjs";
+import { isGmgnRateLimitError } from "./gmgn.mjs";
 
 const HISTORY_VERSION = 1;
 
@@ -130,6 +131,8 @@ export async function enrichDeveloperHistories(candidates, selectedKeys, options
   let cachedCount = 0;
   let ready = 0;
   let failed = 0;
+  let rateLimited = false;
+  let retryAt = null;
 
   for (const candidate of targets) {
     const cached = store.getDeveloperHistoryCache(tokenCacheKey(candidate), cacheSeconds);
@@ -157,13 +160,19 @@ export async function enrichDeveloperHistories(candidates, selectedKeys, options
     unresolved.filter((candidate) => !isValidAddress(candidate.chain, candidate.creatorAddress)),
     concurrency,
     async (candidate) => {
+      if (rateLimited) return;
       try {
         const infoResult = await gmgnWithRetry(gmgn, [
           "token", "info", "--chain", candidate.chain, "--address", candidate.address, "--raw"
         ]);
         notices.push(...(infoResult.notices || []).map((notice) => `${candidate.chain}/${candidate.symbol}: ${notice}`));
         mergeMarketRow(candidate, infoResult.data, "developer-info");
-      } catch {
+      } catch (error) {
+        if (isGmgnRateLimitError(error)) {
+          rateLimited = true;
+          retryAt = error.retryAt || null;
+          return;
+        }
         notices.push(`${candidate.chain}/${candidate.symbol}: developer address temporarily unavailable`);
       }
     }
@@ -172,9 +181,11 @@ export async function enrichDeveloperHistories(candidates, selectedKeys, options
   const groups = new Map();
   for (const candidate of unresolved) {
     if (!isValidAddress(candidate.chain, candidate.creatorAddress)) {
-      const history = unavailable("missing_creator");
+      const history = unavailable(rateLimited ? "rate_limited" : "missing_creator");
       candidate.developerHistory = history;
-      store.putDeveloperHistoryCache(tokenCacheKey(candidate), "unavailable", { history }, "missing_creator");
+      if (!rateLimited) {
+        store.putDeveloperHistoryCache(tokenCacheKey(candidate), "unavailable", { history }, "missing_creator");
+      }
       failed += 1;
       continue;
     }
@@ -184,6 +195,13 @@ export async function enrichDeveloperHistories(candidates, selectedKeys, options
   }
 
   await mapLimit([...groups.entries()], concurrency, async ([key, group]) => {
+    if (rateLimited) {
+      for (const candidate of group) {
+        candidate.developerHistory = unavailable("rate_limited");
+        failed += 1;
+      }
+      return;
+    }
     const first = group[0];
     let profile;
     const cached = store.getDeveloperHistoryCache(key, cacheSeconds);
@@ -217,6 +235,16 @@ export async function enrichDeveloperHistories(candidates, selectedKeys, options
         store.putDeveloperHistoryCache(key, "ready", { profile });
       } catch (error) {
         const message = String(error?.message || error).slice(0, 300);
+        if (isGmgnRateLimitError(error)) {
+          rateLimited = true;
+          retryAt = error.retryAt || null;
+          for (const candidate of group) {
+            candidate.developerHistory = unavailable("rate_limited");
+            failed += 1;
+          }
+          notices.push(`${first.chain}/${first.symbol}: developer history rate limited; keeping current market scan`);
+          return;
+        }
         store.putDeveloperHistoryCache(key, "failed", null, message);
         for (const candidate of group) {
           const history = unavailable("history_query_failed");
@@ -237,5 +265,5 @@ export async function enrichDeveloperHistories(candidates, selectedKeys, options
     }
   });
 
-  return { selected: targets.length, ready, failed, cached: cachedCount };
+  return { selected: targets.length, ready, failed, cached: cachedCount, rateLimited, retryAt };
 }

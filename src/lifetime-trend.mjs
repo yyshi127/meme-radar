@@ -1,4 +1,5 @@
 import { isValidAddress } from "./core.mjs";
+import { isGmgnRateLimitError } from "./gmgn.mjs";
 
 const resolutionSeconds = {
   "1m": 60,
@@ -114,9 +115,15 @@ export async function enrichLifetimeTrends(candidates, selectedKeys, options) {
   const keys = [...new Set(selectedKeys)].filter((key) => byKey.has(key));
   let ready = 0;
   let failed = 0;
+  let rateLimited = false;
+  let retryAt = null;
 
   await mapLimit(keys, concurrency, async (key) => {
     const candidate = byKey.get(key);
+    if (rateLimited) {
+      candidate.lifetimeTrend ||= { status: "unavailable", reason: "rate_limited" };
+      return;
+    }
     const createdAt = Number(candidate.creationTimestamp);
     if (!Number.isFinite(createdAt) || createdAt <= 0 || createdAt > now + 300 || !isValidAddress(candidate.chain, candidate.address)) {
       candidate.lifetimeTrend = { status: "unavailable", reason: "missing_creation_time" };
@@ -169,6 +176,26 @@ export async function enrichLifetimeTrends(candidates, selectedKeys, options) {
       failed += Number(candidate.lifetimeTrend.status !== "ready");
     } catch (error) {
       const message = String(error?.message || error).slice(0, 300);
+      if (isGmgnRateLimitError(error)) {
+        rateLimited = true;
+        retryAt = error.retryAt || null;
+        if (reusable && cached.points.length >= 2) {
+          candidate.lifetimeTrend = buildLifetimeTrend(cached.points, {
+            createdAt,
+            scannedAt: now,
+            updatedAt: cached.checkedAt,
+            resolution,
+            pointLimit,
+            stale: true
+          });
+          ready += 1;
+        } else {
+          candidate.lifetimeTrend = { status: "unavailable", reason: "rate_limited" };
+          failed += 1;
+        }
+        notices.push(`${candidate.chain}/${candidate.symbol}: K 线补充触发限流，本轮保留已有行情`);
+        return;
+      }
       if (reusable && cached.points.length >= 2) {
         store.putKlineCache(key, resolution, createdAt, cached.toTs, cached.points, message, now);
         candidate.lifetimeTrend = buildLifetimeTrend(cached.points, {
@@ -189,5 +216,5 @@ export async function enrichLifetimeTrends(candidates, selectedKeys, options) {
     }
   });
 
-  return { selected: keys.length, ready, failed };
+  return { selected: keys.length, ready, failed, rateLimited, retryAt };
 }

@@ -1,4 +1,5 @@
 import { getCandidate, mergeMarketRow } from "./core.mjs";
+import { isGmgnRateLimitError } from "./gmgn.mjs";
 
 function hydrateFromSnapshot(candidate, snapshot = {}) {
   for (const field of ["symbol", "name", "creatorAddress", "price", "marketCap", "liquidity", "developerHistory", "sameNameLeader"]) {
@@ -11,6 +12,8 @@ export async function refreshWatchMarkets(book, options) {
   const { gmgn, store, notices = [] } = options;
   const watched = store.listWatchlist();
   let refreshed = 0;
+  let rateLimited = false;
+  let retryAt = null;
   const researchEntries = [];
 
   for (const entry of watched) {
@@ -21,14 +24,19 @@ export async function refreshWatchMarkets(book, options) {
     }
     hydrateFromSnapshot(candidate, entry.snapshot);
     researchEntries.push({ candidate, snapshot: entry.snapshot || {} });
+    if (rateLimited) continue;
     try {
       const result = await gmgn(["token", "info", "--chain", entry.chain, "--address", entry.address, "--raw"]);
       mergeMarketRow(candidate, result.data, "watch-market");
       if (store.updateWatchMarket(candidate)) refreshed += 1;
-    } catch {
+    } catch (error) {
+      if (isGmgnRateLimitError(error)) {
+        rateLimited = true;
+        retryAt = error.retryAt || null;
+      }
       notices.push(`${entry.chain}/${entry.snapshot?.symbol || entry.address.slice(0, 8)}: 收藏行情刷新失败，继续显示上次数据`);
     }
   }
 
-  return { refreshed, researchEntries };
+  return { refreshed, researchEntries, rateLimited, retryAt };
 }

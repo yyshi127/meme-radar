@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { getCandidate } from "../src/core.mjs";
 import { refreshWatchMarkets } from "../src/watch-market.mjs";
+import { GmgnRateLimitError } from "../src/gmgn.mjs";
 
 test("每轮为所有收藏币刷新行情且不把离榜收藏强行加入候选", async () => {
   const currentAddress = "0x5555555555555555555555555555555555555555";
@@ -40,4 +41,29 @@ test("每轮为所有收藏币刷新行情且不把离榜收藏强行加入候�
   assert.equal(updates.length, 2);
   assert.equal(updates[1].marketCap, 40_000);
   assert.equal(book.size, 1);
+});
+
+test("收藏行情触发限流后停止后续请求但仍保留全部收藏快照", async () => {
+  const addresses = [7, 8, 9].map((index) => `0x${String(index).padStart(40, "0")}`);
+  let calls = 0;
+  const store = {
+    listWatchlist: () => addresses.map((address) => ({
+      key: `bsc:${address}`,
+      chain: "bsc",
+      address,
+      snapshot: { symbol: address.slice(-2) }
+    })),
+    updateWatchMarket: () => true
+  };
+  const gmgn = async () => {
+    calls += 1;
+    throw new GmgnRateLimitError(Date.now() + 60_000, true);
+  };
+
+  const result = await refreshWatchMarkets(new Map(), { gmgn, store, notices: [] });
+
+  assert.equal(result.rateLimited, true);
+  assert.equal(result.researchEntries.length, 3);
+  assert.equal(result.refreshed, 0);
+  assert.equal(calls, 1);
 });

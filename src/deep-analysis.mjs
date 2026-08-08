@@ -1,5 +1,8 @@
 import { analyzeHolders } from "./holder-analysis.mjs";
 import { mergeMarketRow } from "./core.mjs";
+import { isGmgnRateLimitError } from "./gmgn.mjs";
+
+const RATE_LIMIT_CACHE_KEY = "__deep_analysis_rate_limit__";
 
 function maxKnown(current, next) {
   if (!Number.isFinite(next)) return current;
@@ -58,8 +61,11 @@ export async function enrichDeepCandidates(candidates, initialScores, options) {
     gmgn,
     store,
     limit = 25,
-    concurrency = 3,
+    concurrency = 1,
+    requestLimit = 3,
     cacheSeconds = 1800,
+    failureCacheSeconds = 1800,
+    rateLimitCooldownSeconds = 1800,
     watchedKeys = new Set(),
     notices = []
   } = options;
@@ -80,64 +86,131 @@ export async function enrichDeepCandidates(candidates, initialScores, options) {
 
   for (const candidate of candidates) candidate.verificationStatus = "pending";
 
-  await mapLimit(selectedKeys.slice(0, limit), concurrency, async (key) => {
+  const limitedKeys = selectedKeys.slice(0, limit);
+  const unresolved = [];
+  let cachedCount = 0;
+  let verified = 0;
+  let failed = 0;
+  let attempted = 0;
+  let rateLimited = false;
+  let retryAt = null;
+
+  for (const key of limitedKeys) {
     const candidate = byKey.get(key);
-    const cached = store.getHolderCache(key, cacheSeconds);
-    if (cached?.status === "verified"
-      && cached.payload?.holderAnalysis?.analysisVersion === 4
-      && cached.payload?.metadataVersion === 1) {
-      applyPayload(candidate, cached.payload);
-      return;
-    }
+    const cached = store.getHolderCache(key, Number.POSITIVE_INFINITY);
     const cacheAge = cached ? Math.floor(Date.now() / 1000) - cached.checkedAt : Infinity;
-    if (cached?.status === "failed" && cacheAge <= 120) {
+    const reusable = cached?.status === "verified"
+      && cached.payload?.holderAnalysis?.analysisVersion === 4
+      && cached.payload?.metadataVersion === 1;
+    if (reusable) {
+      applyPayload(candidate, cached.payload);
+      cachedCount += 1;
+      if (cacheAge <= cacheSeconds) {
+        verified += 1;
+        continue;
+      }
+    }
+    if (cached?.status === "failed" && cacheAge <= failureCacheSeconds) {
       candidate.verificationStatus = "failed";
       candidate.deepAnalysisError = cached.error || "Top100 尽调失败";
-      return;
+      cachedCount += 1;
+      failed += 1;
+      continue;
     }
+    unresolved.push({ key, hasReusableCache: reusable });
+  }
+
+  const rateLimitMarker = store.getHolderCache(RATE_LIMIT_CACHE_KEY, rateLimitCooldownSeconds);
+  if (rateLimitMarker?.status === "rate_limited") {
+    rateLimited = true;
+    const localRetryAt = new Date((rateLimitMarker.checkedAt + rateLimitCooldownSeconds) * 1000).toISOString();
+    retryAt = rateLimitMarker.error && Date.parse(rateLimitMarker.error) > Date.now()
+      ? rateLimitMarker.error
+      : localRetryAt;
+  }
+
+  // New candidates are more valuable than refreshing an already usable stale
+  // cache. This also prevents the same top-ranked tokens from consuming every
+  // request slot on every scan.
+  unresolved.sort((a, b) => Number(a.hasReusableCache) - Number(b.hasReusableCache));
+  const requestKeys = rateLimited
+    ? []
+    : unresolved.slice(0, Math.max(0, requestLimit)).map((item) => item.key);
+
+  await mapLimit(requestKeys, concurrency, async (key) => {
+    if (rateLimited) return;
+    const candidate = byKey.get(key);
+    attempted += 1;
 
     try {
-      const [holdersResult, securityResult, infoResult] = await Promise.allSettled([
-        gmgnWithRetry(gmgn, ["token", "holders", "--chain", candidate.chain, "--address", candidate.address, "--limit", "100", "--raw"]),
-        gmgnWithRetry(gmgn, ["token", "security", "--chain", candidate.chain, "--address", candidate.address, "--raw"]),
-        gmgnWithRetry(gmgn, ["token", "info", "--chain", candidate.chain, "--address", candidate.address, "--raw"])
+      const holdersResult = await gmgnWithRetry(gmgn, [
+        "token", "holders", "--chain", candidate.chain, "--address", candidate.address, "--limit", "100", "--raw"
       ]);
-      if (holdersResult.status !== "fulfilled") throw holdersResult.reason;
-      let smartPayload;
-      let kolPayload;
+      let security = null;
+      let info = null;
       let devPayload;
       try {
-        smartPayload = (await gmgnWithRetry(gmgn, ["token", "holders", "--chain", candidate.chain, "--address", candidate.address, "--tag", "smart_degen", "--limit", "100", "--raw"])).data;
-      } catch {
-        notices.push(`${candidate.chain}/${candidate.symbol}: 当前聪明钱名单仅覆盖 Top100`);
+        security = (await gmgnWithRetry(gmgn, [
+          "token", "security", "--chain", candidate.chain, "--address", candidate.address, "--raw"
+        ])).data;
+      } catch (error) {
+        if (isGmgnRateLimitError(error)) throw error;
       }
       try {
-        kolPayload = (await gmgnWithRetry(gmgn, ["token", "holders", "--chain", candidate.chain, "--address", candidate.address, "--tag", "renowned", "--limit", "100", "--raw"])).data;
-      } catch {
-        notices.push(`${candidate.chain}/${candidate.symbol}: 当前 KOL 名单仅覆盖 Top100`);
+        info = (await gmgnWithRetry(gmgn, [
+          "token", "info", "--chain", candidate.chain, "--address", candidate.address, "--raw"
+        ])).data;
+      } catch (error) {
+        if (isGmgnRateLimitError(error)) throw error;
       }
       try {
         devPayload = (await gmgnWithRetry(gmgn, ["token", "holders", "--chain", candidate.chain, "--address", candidate.address, "--tag", "dev", "--limit", "20", "--raw"])).data;
-      } catch {
+      } catch (error) {
+        if (isGmgnRateLimitError(error)) throw error;
         notices.push(`${candidate.chain}/${candidate.symbol}: 开发者名单仅覆盖 Top100`);
       }
-      const holderAnalysis = analyzeHolders(holdersResult.value.data, { smartPayload, kolPayload, devPayload });
-      const security = securityResult.status === "fulfilled" ? securityResult.value.data : null;
-      const info = infoResult.status === "fulfilled" ? infoResult.value.data : null;
+      // Smart-money and KOL tags are already included on the Top100 rows. The
+      // dedicated tag queries add two more weight-5 calls per token, so the
+      // radar uses the documented Top100 fallback and reserves the extra call
+      // only for the developer wallet list.
+      const holderAnalysis = analyzeHolders(holdersResult.data, { devPayload });
       const payload = { holderAnalysis, security, info, metadataVersion: 1 };
       applyPayload(candidate, payload);
       store.putHolderCache(key, "verified", payload);
+      verified += 1;
       if (!security) candidate.deepAnalysisError = "合约安全数据暂时不可用";
       if (!info) notices.push(`${candidate.chain}/${candidate.symbol}: 叙事资料暂时不可用`);
     } catch (error) {
       const message = String(error?.message || error).slice(0, 300);
+      if (isGmgnRateLimitError(error)) {
+        rateLimited = true;
+        const upstreamRetryAt = Date.parse(error.retryAt || "");
+        const localRetryAt = Date.now() + rateLimitCooldownSeconds * 1000;
+        retryAt = new Date(Math.max(Number.isFinite(upstreamRetryAt) ? upstreamRetryAt : 0, localRetryAt)).toISOString();
+        store.putHolderCache(RATE_LIMIT_CACHE_KEY, "rate_limited", null, retryAt);
+        if (candidate.verificationStatus !== "verified") candidate.verificationStatus = "pending";
+        candidate.deepAnalysisError = "GMGN 限流，等待后台补充深度数据";
+        notices.push(`${candidate.chain}/${candidate.symbol}: 深度尽调触发限流，保留本轮行情并暂停后续深度请求`);
+        return;
+      }
       candidate.verificationStatus = "failed";
       candidate.deepAnalysisError = message;
       store.putHolderCache(key, "failed", null, message);
+      failed += 1;
       notices.push(`${candidate.chain}/${candidate.symbol}: Top100 尽调失败`);
     }
   });
 
-  const limitedKeys = selectedKeys.slice(0, limit);
-  return { selected: limitedKeys.length, selectedKeys: limitedKeys };
+  const pending = limitedKeys.filter((key) => byKey.get(key)?.verificationStatus === "pending").length;
+  return {
+    selected: limitedKeys.length,
+    selectedKeys: limitedKeys,
+    attempted,
+    verified,
+    failed,
+    cached: cachedCount,
+    pending,
+    rateLimited,
+    retryAt
+  };
 }

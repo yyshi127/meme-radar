@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { getCandidate } from "../src/core.mjs";
+import { GmgnRateLimitError } from "../src/gmgn.mjs";
 import {
   buildLifetimeTrend,
   downsampleKlinePoints,
@@ -89,4 +90,37 @@ test("首次取全生命周期 K 线，后续缓存可增量续接", async () =>
   assert.equal(calledArgs[1], "kline");
   assert.equal(calledArgs[calledArgs.indexOf("--from") + 1], String(now - 120));
   assert.equal(cache.points.length, 2);
+});
+
+test("K 线触发限流后不污染缓存并停止后续请求", async () => {
+  const now = 2_000_000_120;
+  const candidates = [2, 3].map((index) => {
+    const candidate = getCandidate(new Map(), "bsc", `0x${String(index).padStart(40, "0")}`);
+    candidate.symbol = `KLINE${index}`;
+    candidate.creationTimestamp = now - 120;
+    return candidate;
+  });
+  let calls = 0;
+  let cacheWrites = 0;
+  const gmgn = async () => {
+    calls += 1;
+    throw new GmgnRateLimitError(Date.now() + 60_000, true);
+  };
+  const store = {
+    getKlineCache: () => null,
+    putKlineCache: () => { cacheWrites += 1; }
+  };
+
+  const result = await enrichLifetimeTrends(candidates, candidates.map((item) => item.key), {
+    gmgn,
+    store,
+    now,
+    concurrency: 1,
+    cacheSeconds: 0
+  });
+
+  assert.equal(result.rateLimited, true);
+  assert.equal(calls, 1);
+  assert.equal(cacheWrites, 0);
+  assert.equal(candidates[1].lifetimeTrend.reason, "rate_limited");
 });
