@@ -10,6 +10,7 @@ import { loadConfig, loadLatestReport, scan } from "./index.mjs";
 import { getGmgnRateLimitStatus } from "./gmgn.mjs";
 import { isValidAddress } from "./core.mjs";
 import { radarStore } from "./store.mjs";
+import { createScanWatchdog, resolveScanTimeoutSeconds } from "./scan-watchdog.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const publicDir = path.join(root, "web", "dist");
@@ -21,6 +22,8 @@ const authEnabled = Boolean(authUser && authPassword);
 const shouldOpen = process.argv.includes("--open");
 const config = await loadConfig();
 const scanIntervalMs = config.watchIntervalSeconds * 1000;
+const scanTimeoutSeconds = resolveScanTimeoutSeconds(config);
+const scanTimeoutMs = scanTimeoutSeconds * 1000;
 let nextScheduledAt = Date.now() + scanIntervalMs;
 
 let activeScan = null;
@@ -32,7 +35,8 @@ let status = {
   lastCompletedAt: latestReport?.generatedAt || null,
   lastError: null,
   trigger: null,
-  intervalSeconds: config.watchIntervalSeconds
+  intervalSeconds: config.watchIntervalSeconds,
+  scanTimeoutSeconds
 };
 
 function json(response, code, data) {
@@ -102,6 +106,10 @@ async function requestJson(request) {
 function startScan(trigger) {
   if (activeScan) return activeScan;
   status = { ...status, scanning: true, lastStartedAt: new Date().toISOString(), lastError: null, trigger };
+  const cancelWatchdog = createScanWatchdog(scanTimeoutMs, () => {
+    console.error(`[scan] exceeded ${scanTimeoutSeconds}s; exiting so the service manager can terminate the stuck scan and restart cleanly`);
+    process.exit(1);
+  });
   activeScan = scan(config, { quiet: true })
     .then((result) => {
       latestReport = result;
@@ -115,7 +123,10 @@ function startScan(trigger) {
       console.error(`[scan] ${status.lastError}`);
       throw error;
     })
-    .finally(() => { activeScan = null; });
+    .finally(() => {
+      cancelWatchdog();
+      activeScan = null;
+    });
   return activeScan;
 }
 
