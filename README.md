@@ -75,7 +75,7 @@ node .\src\index.mjs inspect bsc <合约地址>
 - KOL 实时买入
 - GMGN Smart Money / KOL 信号流
 
-默认扫描 Solana 和 BSC。只有至少两类信号共振，才可能进入 `ALERT`。合约风险、刷量、持仓集中、Bundler、内盘比例和追涨风险会扣分或直接硬过滤。
+默认扫描 Solana、BSC 和 Robinhood Chain。只有至少两类信号共振，才可能进入 `ALERT`。合约风险、刷量、持仓集中、Bundler、内盘比例和追涨风险会扣分或直接硬过滤。
 
 ## 输出文件
 

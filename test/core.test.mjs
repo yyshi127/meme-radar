@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { assessSafety, buildNarrativeProfile, getCandidate, mergeMarketRow, mergeSignal, mergeTrade, scoreCandidate, scoreCandidateEarly, scoreCandidateLegacy } from "../src/core.mjs";
+import { assessSafety, buildNarrativeProfile, getCandidate, isValidAddress, mergeMarketRow, mergeSignal, mergeTrade, scoreCandidate, scoreCandidateEarly, scoreCandidateLegacy } from "../src/core.mjs";
 
 const SOL = "So11111111111111111111111111111111111111112";
 
@@ -410,4 +410,11 @@ test("token info merges the developer creator address", () => {
   const creatorAddress = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
   mergeMarketRow(item, { dev: { creator_address: creatorAddress } }, "token-info");
   assert.equal(item.creatorAddress, creatorAddress);
+});
+
+test("Robinhood Chain uses EVM address validation", () => {
+  const address = "0x0423bed328942cb8bf79726b986893e1eb863cba";
+  assert.equal(isValidAddress("robinhood", address), true);
+  assert.equal(isValidAddress("robinhood", "not-an-evm-address"), false);
+  assert.ok(getCandidate(new Map(), "robinhood", address));
 });

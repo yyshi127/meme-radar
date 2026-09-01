@@ -249,6 +249,7 @@ td { padding: 0 10px; color: #bac4cf; font-size: 12px; overflow: hidden; text-ov
 .chain { font-size: 9px; font-weight: 750; letter-spacing: 0.04em; }
 .chain-sol { color: #7edfc0; }
 .chain-bsc { color: #e9c566; }
+.chain-robinhood { color: #72e47c; }
 .phase { color: #99a5b1; font-size: 10px; }
 .phase-late { color: #e59b90; }
 .phase-breakout { color: #83b6fb; }

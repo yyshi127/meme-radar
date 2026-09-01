@@ -33,6 +33,7 @@ export default function Filters({ filters, onChange, resultCount }) {
           <option value="all">全部</option>
           <option value="sol">Solana</option>
           <option value="bsc">BSC</option>
+          <option value="robinhood">Robinhood Chain</option>
         </select>
       </label>
       <label className="select-control">

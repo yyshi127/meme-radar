@@ -1,5 +1,5 @@
 {
-  "chains": ["sol", "bsc"],
+  "chains": ["sol", "bsc", "robinhood"],
   "watchIntervalSeconds": 600,
   "scanTimeoutSeconds": 540,
   "clusterWindowMinutes": 30,

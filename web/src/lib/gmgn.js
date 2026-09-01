@@ -1,4 +1,4 @@
-const SUPPORTED_CHAINS = new Set(["sol", "bsc"]);
+const SUPPORTED_CHAINS = new Set(["sol", "bsc", "robinhood"]);
 
 export function gmgnTokenUrl(chain, address) {
   const normalizedChain = String(chain || "").toLowerCase();
